@@ -1,0 +1,3255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SWARM COMMAND — Next Generation Air Dominance</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+@font-face { font-family: 'Military'; src: local('Courier New'); }
+
+body {
+  background: #0a0e14;
+  color: #00ffcc;
+  font-family: 'Courier New', monospace;
+  overflow: hidden;
+  cursor: crosshair;
+  user-select: none;
+}
+
+#gameCanvas {
+  position: fixed;
+  top: 0; left: 0;
+  z-index: 1;
+}
+
+/* HUD Overlay */
+.hud {
+  position: fixed;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.hud * {
+  pointer-events: auto;
+}
+
+/* Top Bar */
+#topBar {
+  top: 0; left: 0; right: 0;
+  height: 48px;
+  background: linear-gradient(180deg, rgba(0,20,30,0.95) 0%, rgba(0,10,20,0.8) 100%);
+  border-bottom: 1px solid rgba(0,255,200,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  font-size: 12px;
+}
+
+#topBar .title {
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 4px;
+  color: #00ffcc;
+  text-shadow: 0 0 10px rgba(0,255,200,0.5);
+}
+
+#topBar .stat {
+  color: #88ccbb;
+  margin: 0 12px;
+}
+
+#topBar .stat span {
+  color: #00ffcc;
+  font-weight: bold;
+}
+
+#alertTicker {
+  color: #ffaa00;
+  font-size: 11px;
+  animation: pulse 2s infinite;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Bottom Panel */
+#bottomPanel {
+  bottom: 0; left: 0; right: 0;
+  height: 140px;
+  background: linear-gradient(0deg, rgba(0,20,30,0.95) 0%, rgba(0,10,20,0.8) 100%);
+  border-top: 1px solid rgba(0,255,200,0.3);
+  display: flex;
+  align-items: stretch;
+  padding: 8px 16px;
+  gap: 12px;
+}
+
+/* Selected Info */
+#selectedInfo {
+  flex: 1;
+  min-width: 200px;
+}
+
+#selectedInfo h3 {
+  font-size: 11px;
+  color: #00aa88;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+#selectedInfo .info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 12px;
+  font-size: 11px;
+  color: #88ccbb;
+}
+
+/* Command Buttons */
+#commandPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 280px;
+}
+
+#commandPanel h3 {
+  font-size: 11px;
+  color: #00aa88;
+  letter-spacing: 2px;
+  margin-bottom: 2px;
+}
+
+.cmd-row {
+  display: flex;
+  gap: 4px;
+}
+
+.cmd-btn {
+  flex: 1;
+  background: rgba(0,255,200,0.08);
+  border: 1px solid rgba(0,255,200,0.25);
+  color: #00ffcc;
+  padding: 6px 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.15s;
+  text-transform: uppercase;
+}
+
+.cmd-btn:hover {
+  background: rgba(0,255,200,0.2);
+  border-color: rgba(0,255,200,0.6);
+  text-shadow: 0 0 8px rgba(0,255,200,0.5);
+}
+
+.cmd-btn:active, .cmd-btn.active {
+  background: rgba(0,255,200,0.3);
+  border-color: #00ffcc;
+}
+
+.cmd-btn .hotkey {
+  color: #ffcc00;
+  font-weight: bold;
+}
+
+/* Left Panel - Deploy */
+#deployPanel {
+  left: 0; top: 48px; bottom: 140px;
+  width: 180px;
+  background: linear-gradient(90deg, rgba(0,20,30,0.92) 0%, rgba(0,10,20,0.7) 100%);
+  border-right: 1px solid rgba(0,255,200,0.2);
+  padding: 8px;
+  overflow-y: auto;
+}
+
+#deployPanel h3 {
+  font-size: 11px;
+  color: #00aa88;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.deploy-section {
+  margin-bottom: 10px;
+}
+
+.deploy-section h4 {
+  font-size: 9px;
+  color: #ff8844;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(255,136,68,0.3);
+}
+
+.deploy-btn {
+  width: 100%;
+  background: rgba(0,255,200,0.05);
+  border: 1px solid rgba(0,255,200,0.15);
+  color: #88ccbb;
+  padding: 5px 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 9px;
+  cursor: pointer;
+  margin-bottom: 3px;
+  text-align: left;
+  transition: all 0.15s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.deploy-btn:hover {
+  background: rgba(0,255,200,0.15);
+  border-color: rgba(0,255,200,0.4);
+  color: #00ffcc;
+}
+
+.deploy-btn .cost {
+  color: #ffcc00;
+  font-size: 8px;
+}
+
+.deploy-btn.on-cooldown {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Right Panel - Spectrum & Intel */
+#rightPanel {
+  right: 0; top: 48px; bottom: 140px;
+  width: 200px;
+  background: linear-gradient(270deg, rgba(0,20,30,0.92) 0%, rgba(0,10,20,0.7) 100%);
+  border-left: 1px solid rgba(0,255,200,0.2);
+  padding: 8px;
+  overflow-y: auto;
+}
+
+#rightPanel h3 {
+  font-size: 11px;
+  color: #00aa88;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.spectrum-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 10px;
+  gap: 6px;
+}
+
+.spectrum-row label {
+  width: 50px;
+  color: #88ccbb;
+}
+
+.spectrum-row input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 4px;
+  background: rgba(0,255,200,0.2);
+  border-radius: 2px;
+  outline: none;
+}
+
+.spectrum-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px; height: 12px;
+  background: #00ffcc;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.spectrum-row .val {
+  width: 28px;
+  text-align: right;
+  color: #00ffcc;
+  font-size: 10px;
+}
+
+#intelFeed {
+  margin-top: 12px;
+  border-top: 1px solid rgba(0,255,200,0.2);
+  padding-top: 8px;
+}
+
+#intelFeed h4 {
+  font-size: 9px;
+  color: #ff8844;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.intel-entry {
+  font-size: 9px;
+  color: #88aaaa;
+  margin-bottom: 3px;
+  padding-left: 6px;
+  border-left: 2px solid rgba(0,255,200,0.3);
+}
+
+.intel-entry.warning {
+  color: #ffaa00;
+  border-left-color: #ffaa00;
+}
+
+.intel-entry.critical {
+  color: #ff4444;
+  border-left-color: #ff4444;
+}
+
+/* Minimap */
+#minimap {
+  position: fixed;
+  right: 8px;
+  bottom: 148px;
+  width: 220px;
+  height: 155px;
+  background: rgba(0,15,25,0.9);
+  border: 1px solid rgba(0,255,200,0.3);
+  z-index: 15;
+}
+
+#minimapCanvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* Selection Box */
+#selectionBox {
+  position: fixed;
+  border: 1px solid rgba(0,255,200,0.7);
+  background: rgba(0,255,200,0.08);
+  z-index: 5;
+  pointer-events: none;
+  display: none;
+}
+
+/* Menu Screen */
+#menuScreen {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 100;
+  background: radial-gradient(ellipse at center, #0a1a2a 0%, #050a10 70%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+#menuScreen h1 {
+  font-size: 48px;
+  letter-spacing: 12px;
+  color: #00ffcc;
+  text-shadow: 0 0 30px rgba(0,255,200,0.4), 0 0 60px rgba(0,255,200,0.2);
+  margin-bottom: 4px;
+}
+
+#menuScreen h2 {
+  font-size: 14px;
+  letter-spacing: 6px;
+  color: #00aa88;
+  margin-bottom: 40px;
+}
+
+#menuScreen .subtitle {
+  font-size: 11px;
+  color: #557766;
+  letter-spacing: 3px;
+  margin-bottom: 40px;
+}
+
+.menu-btn {
+  background: rgba(0,255,200,0.08);
+  border: 1px solid rgba(0,255,200,0.3);
+  color: #00ffcc;
+  padding: 12px 48px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  cursor: pointer;
+  letter-spacing: 4px;
+  margin-bottom: 12px;
+  transition: all 0.2s;
+  min-width: 280px;
+  text-align: center;
+}
+
+.menu-btn:hover {
+  background: rgba(0,255,200,0.2);
+  border-color: #00ffcc;
+  text-shadow: 0 0 10px rgba(0,255,200,0.5);
+  transform: scale(1.02);
+}
+
+.menu-controls {
+  margin-top: 30px;
+  font-size: 10px;
+  color: #445555;
+  text-align: center;
+  line-height: 1.8;
+}
+
+/* Game Over Screen */
+#gameOverScreen {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 100;
+  background: rgba(5,10,15,0.95);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+#gameOverScreen h1 {
+  font-size: 36px;
+  letter-spacing: 8px;
+  margin-bottom: 20px;
+}
+
+#gameOverScreen .stats {
+  font-size: 12px;
+  color: #88ccbb;
+  line-height: 2;
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,255,200,0.3); border-radius: 2px; }
+
+/* Instructions Panel */
+#instructionsPanel {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 90;
+  width: 620px;
+  max-height: 80vh;
+  background: rgba(0,12,20,0.97);
+  border: 1px solid rgba(0,255,200,0.4);
+  box-shadow: 0 0 40px rgba(0,255,200,0.1), inset 0 0 60px rgba(0,20,30,0.5);
+  padding: 0;
+  display: none;
+  overflow: hidden;
+}
+
+#instructionsPanel .instr-header {
+  background: rgba(0,255,200,0.08);
+  border-bottom: 1px solid rgba(0,255,200,0.25);
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#instructionsPanel .instr-header h2 {
+  font-size: 14px;
+  letter-spacing: 4px;
+  color: #00ffcc;
+  text-shadow: 0 0 10px rgba(0,255,200,0.3);
+}
+
+#instructionsPanel .instr-close {
+  background: none;
+  border: 1px solid rgba(0,255,200,0.3);
+  color: #00ffcc;
+  padding: 4px 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.15s;
+}
+
+#instructionsPanel .instr-close:hover {
+  background: rgba(0,255,200,0.2);
+  border-color: #00ffcc;
+}
+
+#instructionsPanel .instr-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  max-height: calc(80vh - 50px);
+  font-size: 11px;
+  line-height: 1.7;
+  color: #88ccbb;
+}
+
+.instr-section {
+  margin-bottom: 14px;
+}
+
+.instr-section h3 {
+  font-size: 11px;
+  color: #ff8844;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid rgba(255,136,68,0.2);
+}
+
+.instr-section .row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.instr-section .key {
+  min-width: 110px;
+  color: #ffcc00;
+  font-weight: bold;
+  text-align: right;
+}
+
+.instr-section .desc {
+  color: #88ccbb;
+}
+
+.instr-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 20px;
+}
+
+.instr-tip {
+  background: rgba(0,255,200,0.06);
+  border-left: 2px solid rgba(0,255,200,0.4);
+  padding: 8px 12px;
+  margin-top: 10px;
+  font-size: 10px;
+  color: #aaddcc;
+}
+
+.instr-tip strong {
+  color: #00ffcc;
+}
+
+#instructionsPanel .instr-footer {
+  background: rgba(0,255,200,0.05);
+  border-top: 1px solid rgba(0,255,200,0.15);
+  padding: 10px 20px;
+  text-align: center;
+  font-size: 10px;
+  color: #557766;
+}
+
+.instr-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 85;
+  display: none;
+}
+
+/* Scanline overlay */
+#scanlines {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 50;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+}
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+<div id="scanlines"></div>
+<div id="selectionBox"></div>
+
+<!-- Menu -->
+<div id="menuScreen">
+  <h1>SWARM COMMAND</h1>
+  <h2>NEXT GENERATION AIR DOMINANCE</h2>
+  <div class="subtitle">5TH / 6TH GENERATION AUTONOMOUS WARFARE</div>
+  <button class="menu-btn" onclick="startGame('standard')">CAMPAIGN — STANDARD</button>
+  <button class="menu-btn" onclick="startGame('hard')">CAMPAIGN — NEAR PEER</button>
+  <button class="menu-btn" onclick="startGame('endless')">ENDLESS SWARM</button>
+  <div class="menu-controls">
+    WASD — PAN &nbsp;|&nbsp; SCROLL — ZOOM &nbsp;|&nbsp; LMB DRAG — SELECT<br>
+    OPT+CLICK — MOVE/ATTACK &nbsp;|&nbsp; A — ATTACK MOVE &nbsp;|&nbsp; D — DEFEND<br>
+    P — PATROL &nbsp;|&nbsp; R — RTB &nbsp;|&nbsp; S — SCATTER &nbsp;|&nbsp; 1-5 — CTRL GROUPS<br>
+    SPACE — PAUSE &nbsp;|&nbsp; TAB — CYCLE SWARMS
+  </div>
+</div>
+
+<!-- Game Over -->
+<div id="gameOverScreen">
+  <h1 id="gameOverTitle">MISSION COMPLETE</h1>
+  <div class="stats" id="gameOverStats"></div>
+  <button class="menu-btn" onclick="location.reload()">RETURN TO BASE</button>
+</div>
+
+<!-- Instructions Panel -->
+<div class="instr-backdrop" id="instrBackdrop" onclick="closeInstructions()"></div>
+<div id="instructionsPanel">
+  <div class="instr-header">
+    <h2>MISSION BRIEFING</h2>
+    <button class="instr-close" onclick="closeInstructions()">DISMISS [ESC]</button>
+  </div>
+  <div class="instr-body">
+    <div class="instr-section">
+      <h3>MISSION OBJECTIVE</h3>
+      <div class="desc">Command autonomous drone swarms across air, land, and sea to defeat incoming enemy waves. Deploy units from the left panel, manage your EM spectrum, and use cyber operations to dominate the battlespace.</div>
+    </div>
+
+    <div class="instr-columns">
+      <div class="instr-section">
+        <h3>CAMERA CONTROLS</h3>
+        <div class="row"><span class="key">WASD / Arrows</span><span class="desc">Pan camera</span></div>
+        <div class="row"><span class="key">Mouse Edge</span><span class="desc">Edge scroll</span></div>
+        <div class="row"><span class="key">Scroll Wheel</span><span class="desc">Zoom in/out</span></div>
+        <div class="row"><span class="key">Minimap Click</span><span class="desc">Jump to location</span></div>
+      </div>
+
+      <div class="instr-section">
+        <h3>UNIT SELECTION</h3>
+        <div class="row"><span class="key">Left Drag</span><span class="desc">Box select units</span></div>
+        <div class="row"><span class="key">Left Click</span><span class="desc">Select single unit</span></div>
+        <div class="row"><span class="key">Shift+Click</span><span class="desc">Add to selection</span></div>
+        <div class="row"><span class="key">Tab</span><span class="desc">Cycle through swarms</span></div>
+        <div class="row"><span class="key">Ctrl+1-5</span><span class="desc">Set control group</span></div>
+        <div class="row"><span class="key">1-5</span><span class="desc">Recall control group</span></div>
+      </div>
+
+      <div class="instr-section">
+        <h3>ORDERS</h3>
+        <div class="row"><span class="key">Opt+Click</span><span class="desc">Move / Attack target</span></div>
+        <div class="row"><span class="key">A</span><span class="desc">Attack move</span></div>
+        <div class="row"><span class="key">D</span><span class="desc">Defend position</span></div>
+        <div class="row"><span class="key">P</span><span class="desc">Patrol area</span></div>
+        <div class="row"><span class="key">R</span><span class="desc">Return to base</span></div>
+        <div class="row"><span class="key">S</span><span class="desc">Scatter / Disperse</span></div>
+        <div class="row"><span class="key">H</span><span class="desc">Hold position</span></div>
+        <div class="row"><span class="key">Escape</span><span class="desc">Deselect all</span></div>
+      </div>
+
+      <div class="instr-section">
+        <h3>SYSTEM</h3>
+        <div class="row"><span class="key">Space</span><span class="desc">Pause / Resume</span></div>
+        <div class="row"><span class="key">Double-click</span><span class="desc">Select same type</span></div>
+      </div>
+    </div>
+
+    <div class="instr-section">
+      <h3>DRONE TYPES</h3>
+      <div class="instr-columns">
+        <div>
+          <div class="desc" style="color:#ff8844; margin-bottom:2px;">AIR DOMAIN (triangles)</div>
+          <div class="row"><span class="key">NGAD</span><span class="desc">Elite stealth fighter, high damage</span></div>
+          <div class="row"><span class="key">CCA x5</span><span class="desc">Loyal wingmen, fast attack swarm</span></div>
+          <div class="row"><span class="key">ISR x3</span><span class="desc">Recon — huge sensor range, no weapons</span></div>
+          <div class="row"><span class="key">EW x3</span><span class="desc">Jammer — blinds enemy sensors</span></div>
+          <div class="row"><span class="key">Fury x8</span><span class="desc">Anduril expendable attack swarm</span></div>
+          <div class="row"><span class="key">F-47B</span><span class="desc">6th gen stealth fighter, top tier</span></div>
+        </div>
+        <div>
+          <div class="desc" style="color:#ff8844; margin-bottom:2px;">LAND DOMAIN (rectangles)</div>
+          <div class="row"><span class="key">UGV x8</span><span class="desc">Ground combat squad</span></div>
+          <div class="row"><span class="key">Recon x6</span><span class="desc">Stealthy ground scouts</span></div>
+          <div class="row"><span class="key">Supply x4</span><span class="desc">Heals nearby friendly units</span></div>
+        </div>
+        <div>
+          <div class="desc" style="color:#ff8844; margin-bottom:2px;">SEA DOMAIN (diamonds)</div>
+          <div class="row"><span class="key">USV x4</span><span class="desc">Surface patrol vessels</span></div>
+          <div class="row"><span class="key">UUV x3</span><span class="desc">Stealth torpedo submarines</span></div>
+          <div class="row"><span class="key">Skimmer x6</span><span class="desc">Fast sea-skimming attack drones</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="instr-section">
+      <h3>EM SPECTRUM MANAGEMENT</h3>
+      <div class="desc">Use the right panel sliders to allocate your electromagnetic spectrum budget (max 100):</div>
+      <div class="row"><span class="key">RADAR</span><span class="desc">More radar = longer sensor range, but easier to detect</span></div>
+      <div class="row"><span class="key">COMMS</span><span class="desc">More comms = better swarm coordination and response</span></div>
+      <div class="row"><span class="key">JAMMING</span><span class="desc">More jamming = degrades enemy sensors and accuracy</span></div>
+    </div>
+
+    <div class="instr-section">
+      <h3>CYBER OPERATIONS</h3>
+      <div class="row"><span class="key">Hack Swarm (300)</span><span class="desc">Temporarily disables nearest enemy swarm</span></div>
+      <div class="row"><span class="key">EMP Burst (400)</span><span class="desc">Damages and jams enemies near cursor</span></div>
+    </div>
+
+    <div class="instr-columns">
+      <div class="instr-section">
+        <h3>ADVANCED FEATURES</h3>
+        <div class="row"><span class="key">Y</span><span class="desc">Set rally point (click map)</span></div>
+        <div class="row"><span class="key">Rally Point</span><span class="desc">New units auto-move here</span></div>
+        <div class="row"><span class="key">Upgrades</span><span class="desc">Spend supply to boost all units</span></div>
+        <div class="row"><span class="key">Auto-Deploy</span><span class="desc">Toggle automatic unit production</span></div>
+        <div class="row"><span class="key">Select All</span><span class="desc">Select every friendly unit</span></div>
+      </div>
+
+      <div class="instr-section">
+        <h3>GAME SPEED</h3>
+        <div class="row"><span class="key">1x / 2x / 3x</span><span class="desc">Speed controls in top bar</span></div>
+        <div class="row"><span class="key">Wave Preview</span><span class="desc">Incoming wave shown 4s early</span></div>
+        <div class="row"><span class="key">?</span><span class="desc">Show this briefing again</span></div>
+      </div>
+    </div>
+
+    <div class="instr-tip">
+      <strong>TACTICAL TIPS:</strong> Deploy ISR drones early for battlefield awareness. Use EW Jammers to blind enemies before engaging. Sea drones can only move on water, ground drones only on land — air drones go anywhere. Supply bots heal nearby friendlies. Set a rally point to direct new units automatically. Upgrade your swarm stats between waves. Enemy AI flanks and probes — adapt your defenses!
+    </div>
+  </div>
+  <div class="instr-footer">
+    PRESS ESC OR CLICK DISMISS TO BEGIN — GOOD HUNTING, COMMANDER
+  </div>
+</div>
+
+<!-- Top Bar -->
+<div class="hud" id="topBar" style="display:none">
+  <div class="title">SWARM COMMAND</div>
+  <div style="display:flex; align-items:center;">
+    <div class="stat">WAVE: <span id="waveNum">1</span></div>
+    <div class="stat">DRONES: <span id="droneCount">0</span></div>
+    <div class="stat">ENEMY: <span id="enemyCount">0</span></div>
+    <div class="stat">KILLS: <span id="killCount">0</span></div>
+    <div class="stat">SUPPLY: <span id="supplyCount">1000</span> <span style="color:#557766;font-size:9px">(+<span id="supplyRate">2</span>/s)</span></div>
+    <div class="stat">NEXT: <span id="waveCountdown" style="color:#ffaa00">--</span></div>
+    <div id="alertTicker">SYSTEMS NOMINAL</div>
+  </div>
+  <div style="display:flex;gap:3px;align-items:center;">
+    <button class="cmd-btn active" id="speed1" onclick="setGameSpeed(1)" style="padding:2px 6px;font-size:9px;min-width:0">1x</button>
+    <button class="cmd-btn" id="speed2" onclick="setGameSpeed(2)" style="padding:2px 6px;font-size:9px;min-width:0">2x</button>
+    <button class="cmd-btn" id="speed3" onclick="setGameSpeed(3)" style="padding:2px 6px;font-size:9px;min-width:0">3x</button>
+  </div>
+  <div class="stat" style="color:#557766">TIME: <span id="gameTime">00:00</span></div>
+</div>
+
+<!-- Wave Preview Banner -->
+<div id="wavePreviewBanner" style="display:none;position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(0,10,20,0.95);border:1px solid rgba(255,60,40,0.5);padding:8px 24px;text-align:center;pointer-events:none;min-width:300px;">
+  <div class="wave-label" style="font-size:12px;font-weight:bold;letter-spacing:3px;margin-bottom:3px;">WAVE INCOMING</div>
+  <div class="wave-comp" style="font-size:9px;color:#88aaaa;letter-spacing:1px;"></div>
+</div>
+
+<!-- Deploy Panel -->
+<div class="hud" id="deployPanel" style="display:none">
+  <h3>DEPLOY</h3>
+  <div style="display:flex; justify-content:space-between; font-size:8px; color:#557766; letter-spacing:1px; padding:0 6px 4px; border-bottom:1px solid rgba(0,255,200,0.1); margin-bottom:6px;">
+    <span>UNIT TYPE</span><span>SUPPLY COST</span>
+  </div>
+  <div class="deploy-section">
+    <h4>AIR DOMAIN</h4>
+    <button class="deploy-btn" onclick="deploySwarm('ngad')" title="HP:200 SPD:4.5 DMG:35 RNG:280 Stealth:0.7 — Elite stealth fighter">NGAD Fighter <span class="cost">250</span></button>
+    <button class="deploy-btn" onclick="deploySwarm('cca')" title="HP:80 SPD:4 DMG:18 RNG:220 x5 — Fast attack loyal wingmen">CCA Wingman x5 <span class="cost">150</span></button>
+    <button class="deploy-btn" onclick="deploySwarm('isr')" title="HP:40 SPD:3.5 SENSOR:500 x3 — No weapons, huge recon range">ISR Recon x3 <span class="cost">100</span></button>
+    <button class="deploy-btn" onclick="deploySwarm('ew')" title="HP:60 SPD:3 JAM:300 x3 — Jams enemy sensors in radius">EW Jammer x3 <span class="cost">200</span></button>
+    <button class="deploy-btn" onclick="deploySwarm('fury')" title="HP:50 SPD:5.5 DMG:45 RNG:180 x8 — Anduril expendable attack swarm, fast & lethal" style="border-color:rgba(255,150,0,0.3)">Fury Swarm x8 <span class="cost">180</span></button>
+    <button class="deploy-btn" onclick="deploySwarm('f47')" title="HP:280 SPD:5 DMG:45 RNG:320 Stealth:0.85 — 6th gen stealth fighter, superior to NGAD" style="border-color:rgba(180,130,255,0.3)">F-47B Talon <span class="cost">350</span></button>
+  </div>
+  <div class="deploy-section">
+    <h4>LAND DOMAIN</h4>
+    <button class="deploy-btn" onclick="deploySwarm('ugv')" title="HP:120 SPD:1.8 DMG:15 RNG:180 x8 — Ground combat squad">UGV Squad x8 <span class="cost">120</span></button>
+    <button class="deploy-btn" onclick="deploySwarm('recon')" title="HP:30 SPD:2.5 SENSOR:350 Stealth:0.6 x6 — Stealthy ground scouts">Recon Crawlers x6 <span class="cost">80</span></button>
+    <button class="deploy-btn" onclick="deploySwarm('supply')" title="HP:50 SPD:1.5 HEAL:0.3/s x4 — Heals nearby friendly units">Supply Bots x4 <span class="cost">100</span></button>
+  </div>
+  <div class="deploy-section">
+    <h4>SEA DOMAIN</h4>
+    <button class="deploy-btn" onclick="deploySwarm('usv')" title="HP:100 SPD:2.5 DMG:20 RNG:200 x4 — Surface patrol vessels">USV Patrol x4 <span class="cost">160</span></button>
+    <button class="deploy-btn" onclick="deploySwarm('uuv')" title="HP:70 SPD:2 DMG:40 RNG:160 Stealth:0.8 x3 — Stealth torpedo subs">UUV Stealth x3 <span class="cost">180</span></button>
+    <button class="deploy-btn" onclick="deploySwarm('skimmer')" title="HP:35 SPD:5 DMG:50 RNG:140 x6 — Fast, deadly, fragile">Sea Skimmers x6 <span class="cost">140</span></button>
+  </div>
+  <div class="deploy-section">
+    <h4>CYBER OPS</h4>
+    <button class="deploy-btn" id="cyberHackBtn" onclick="launchCyberOp('hack')">Hack Swarm <span class="cost">300</span></button>
+    <button class="deploy-btn" id="cyberEmpBtn" onclick="launchCyberOp('emp')">EMP Burst <span class="cost">400</span></button>
+  </div>
+  <div class="deploy-section">
+    <h4>UPGRADES</h4>
+    <button class="deploy-btn" id="upgrade_damage" onclick="purchaseUpgrade('damage')">DMG LV1 (+20%) <span class="cost">200</span></button>
+    <button class="deploy-btn" id="upgrade_hp" onclick="purchaseUpgrade('hp')">ARMOR LV1 (+20%) <span class="cost">200</span></button>
+    <button class="deploy-btn" id="upgrade_speed" onclick="purchaseUpgrade('speed')">SPD LV1 (+15%) <span class="cost">200</span></button>
+    <button class="deploy-btn" id="upgrade_sensor" onclick="purchaseUpgrade('sensor')">SENSOR LV1 (+30%) <span class="cost">200</span></button>
+  </div>
+  <div class="deploy-section">
+    <h4>AUTO-DEPLOY</h4>
+    <div style="font-size:8px;color:#557766;margin-bottom:4px;">Toggle auto-deploy when supply &gt; cost+100</div>
+    <button class="deploy-btn" id="auto_cca" onclick="toggleAutoDeploy('cca')">CCA Auto: OFF</button>
+    <button class="deploy-btn" id="auto_fury" onclick="toggleAutoDeploy('fury')">Fury Auto: OFF</button>
+    <button class="deploy-btn" id="auto_ugv" onclick="toggleAutoDeploy('ugv')">UGV Auto: OFF</button>
+  </div>
+</div>
+
+<!-- Right Panel -->
+<div class="hud" id="rightPanel" style="display:none">
+  <h3>EM SPECTRUM</h3>
+  <div class="spectrum-row">
+    <label>RADAR</label>
+    <input type="range" id="specRadar" min="0" max="100" value="40" oninput="updateSpectrum()">
+    <span class="val" id="specRadarVal">40</span>
+  </div>
+  <div class="spectrum-row">
+    <label>COMMS</label>
+    <input type="range" id="specComms" min="0" max="100" value="35" oninput="updateSpectrum()">
+    <span class="val" id="specCommsVal">35</span>
+  </div>
+  <div class="spectrum-row">
+    <label>JAM</label>
+    <input type="range" id="specJam" min="0" max="100" value="25" oninput="updateSpectrum()">
+    <span class="val" id="specJamVal">25</span>
+  </div>
+  <div style="font-size:9px; color:#557766; margin-top:4px; text-align:center;">
+    EMISSION TOTAL: <span id="specTotal" style="color:#ffcc00">100</span>/100
+  </div>
+  <div id="intelFeed">
+    <h4>INTEL FEED</h4>
+    <div id="intelEntries"></div>
+  </div>
+</div>
+
+<!-- Bottom Panel -->
+<div class="hud" id="bottomPanel" style="display:none">
+  <div id="selectedInfo">
+    <h3>SELECTION</h3>
+    <div class="info-grid" id="selInfoGrid">
+      <div>NO UNITS SELECTED</div>
+    </div>
+  </div>
+  <div id="commandPanel">
+    <h3>ORDERS</h3>
+    <div class="cmd-row">
+      <button class="cmd-btn" onclick="issueOrder('attack')"><span class="hotkey">A</span> ATTACK</button>
+      <button class="cmd-btn" onclick="issueOrder('defend')"><span class="hotkey">D</span> DEFEND</button>
+      <button class="cmd-btn" onclick="issueOrder('patrol')"><span class="hotkey">P</span> PATROL</button>
+    </div>
+    <div class="cmd-row">
+      <button class="cmd-btn" onclick="issueOrder('rtb')"><span class="hotkey">R</span> RTB</button>
+      <button class="cmd-btn" onclick="issueOrder('scatter')"><span class="hotkey">S</span> SCATTER</button>
+      <button class="cmd-btn" onclick="issueOrder('hold')"><span class="hotkey">H</span> HOLD</button>
+    </div>
+    <div class="cmd-row">
+      <button class="cmd-btn" onclick="issueOrder('formation_wedge')">WEDGE</button>
+      <button class="cmd-btn" onclick="issueOrder('formation_line')">LINE</button>
+      <button class="cmd-btn" onclick="issueOrder('formation_spread')">SPREAD</button>
+    </div>
+    <div class="cmd-row">
+      <button class="cmd-btn" id="rallyBtn" onclick="startSetRally()"><span class="hotkey">Y</span> SET RALLY</button>
+      <button class="cmd-btn" onclick="clearRally()">CLR RALLY</button>
+      <button class="cmd-btn" onclick="selectAll()">SELECT ALL</button>
+    </div>
+  </div>
+</div>
+
+<!-- Minimap -->
+<div id="minimap" style="display:none">
+  <canvas id="minimapCanvas"></canvas>
+</div>
+
+<script>
+// ============================================================
+// SWARM COMMAND - Next Generation Air Dominance
+// Real-time autonomous drone swarm warfare game
+// ============================================================
+
+// --- CONSTANTS ---
+const WORLD_W = 6000;
+const WORLD_H = 4000;
+const GRID_CELL = 120;
+const TEAM_BLUE = 0;
+const TEAM_RED = 1;
+const DOMAIN_AIR = 'air';
+const DOMAIN_LAND = 'land';
+const DOMAIN_SEA = 'sea';
+
+const DRONE_STATS = {
+  ngad:    { domain: DOMAIN_AIR, hp: 200, speed: 4.5, range: 280, damage: 35, rof: 40, sensor: 350, stealth: 0.7, size: 8, count: 1, label: 'NGAD' },
+  cca:     { domain: DOMAIN_AIR, hp: 80, speed: 4, range: 220, damage: 18, rof: 25, sensor: 200, stealth: 0.4, size: 5, count: 5, label: 'CCA' },
+  isr:     { domain: DOMAIN_AIR, hp: 40, speed: 3.5, range: 0, damage: 0, rof: 0, sensor: 500, stealth: 0.3, size: 4, count: 3, label: 'ISR' },
+  ew:      { domain: DOMAIN_AIR, hp: 60, speed: 3, range: 0, damage: 0, rof: 0, sensor: 250, stealth: 0.2, size: 5, count: 3, label: 'EW', jamRadius: 300 },
+  ugv:     { domain: DOMAIN_LAND, hp: 120, speed: 1.8, range: 180, damage: 15, rof: 20, sensor: 160, stealth: 0.1, size: 5, count: 8, label: 'UGV' },
+  recon:   { domain: DOMAIN_LAND, hp: 30, speed: 2.5, range: 0, damage: 0, rof: 0, sensor: 350, stealth: 0.6, size: 3, count: 6, label: 'RECON' },
+  supply:  { domain: DOMAIN_LAND, hp: 50, speed: 1.5, range: 0, damage: 0, rof: 0, sensor: 100, stealth: 0, size: 4, count: 4, label: 'SUPPLY', healRadius: 120, healRate: 0.3 },
+  usv:     { domain: DOMAIN_SEA, hp: 100, speed: 2.5, range: 200, damage: 20, rof: 30, sensor: 220, stealth: 0.2, size: 6, count: 4, label: 'USV' },
+  uuv:     { domain: DOMAIN_SEA, hp: 70, speed: 2, range: 160, damage: 40, rof: 60, sensor: 180, stealth: 0.8, size: 5, count: 3, label: 'UUV' },
+  skimmer: { domain: DOMAIN_SEA, hp: 35, speed: 5, range: 140, damage: 50, rof: 80, sensor: 120, stealth: 0.5, size: 4, count: 6, label: 'SKIMMER' },
+  fury:    { domain: DOMAIN_AIR, hp: 50, speed: 5.5, range: 180, damage: 45, rof: 50, sensor: 200, stealth: 0.5, size: 4, count: 8, label: 'FURY', expendable: true },
+  f47:     { domain: DOMAIN_AIR, hp: 280, speed: 5, range: 320, damage: 45, rof: 35, sensor: 400, stealth: 0.85, size: 10, count: 1, label: 'F-47B' },
+};
+
+const RED_TYPES = ['cca', 'ugv', 'usv', 'cca', 'skimmer', 'cca', 'ugv', 'ew', 'isr'];
+
+const WAVE_TEMPLATES = [
+  { types: ['cca','cca','cca','cca','isr'], label: 'AIR ASSAULT', color: '#00ccff' },
+  { types: ['ugv','ugv','ugv','ugv','ugv','supply'], label: 'GROUND PUSH', color: '#00cc66' },
+  { types: ['usv','usv','skimmer','skimmer','uuv'], label: 'NAVAL STRIKE', color: '#0066ff' },
+  { types: ['cca','ugv','ugv','usv','cca','skimmer'], label: 'COMBINED ARMS', color: '#ffaa00' },
+  { types: ['ew','ew','isr','cca','cca','cca'], label: 'CYBER-EW PACKAGE', color: '#aa44ff' },
+  { types: ['fury','fury','fury','cca','cca'], label: 'EXPENDABLE SWARM', color: '#ff8800' },
+  { types: ['cca','cca','ugv','ugv','usv','usv','ew'], label: 'FULL SPECTRUM', color: '#ff4444' },
+];
+
+const FLANK_TARGETS = [
+  v2(WORLD_W * 0.15, WORLD_H * 0.5),   // direct center
+  v2(WORLD_W * 0.12, WORLD_H * 0.15),   // upper flank
+  v2(WORLD_W * 0.12, WORLD_H * 0.85),   // lower flank
+  v2(WORLD_W * 0.25, WORLD_H * 0.3),    // mid-upper
+  v2(WORLD_W * 0.25, WORLD_H * 0.7),    // mid-lower
+];
+
+// --- MATH UTILS ---
+function v2(x, y) { return { x, y }; }
+function v2add(a, b) { return { x: a.x + b.x, y: a.y + b.y }; }
+function v2sub(a, b) { return { x: a.x - b.x, y: a.y - b.y }; }
+function v2scale(v, s) { return { x: v.x * s, y: v.y * s }; }
+function v2len(v) { return Math.sqrt(v.x * v.x + v.y * v.y); }
+function v2norm(v) { const l = v2len(v); return l > 0 ? { x: v.x/l, y: v.y/l } : { x: 0, y: 0 }; }
+function v2dist(a, b) { return v2len(v2sub(a, b)); }
+function v2limit(v, max) { const l = v2len(v); return l > max ? v2scale(v2norm(v), max) : v; }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+function rand(min, max) { return Math.random() * (max - min) + min; }
+function randInt(min, max) { return Math.floor(rand(min, max + 1)); }
+function angle(a, b) { return Math.atan2(b.y - a.y, b.x - a.x); }
+
+// --- SPATIAL GRID ---
+class SpatialGrid {
+  constructor(cellSize, w, h) {
+    this.cellSize = cellSize;
+    this.cols = Math.ceil(w / cellSize);
+    this.rows = Math.ceil(h / cellSize);
+    this.cells = new Array(this.cols * this.rows);
+    this.clear();
+  }
+  clear() {
+    for (let i = 0; i < this.cells.length; i++) this.cells[i] = [];
+  }
+  _key(x, y) {
+    const c = clamp(Math.floor(x / this.cellSize), 0, this.cols - 1);
+    const r = clamp(Math.floor(y / this.cellSize), 0, this.rows - 1);
+    return r * this.cols + c;
+  }
+  insert(entity) {
+    this.cells[this._key(entity.pos.x, entity.pos.y)].push(entity);
+  }
+  query(x, y, radius) {
+    const results = [];
+    const r = Math.ceil(radius / this.cellSize);
+    const cx = Math.floor(x / this.cellSize);
+    const cy = Math.floor(y / this.cellSize);
+    const r2 = radius * radius;
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        const nx = cx + dx, ny = cy + dy;
+        if (nx < 0 || ny < 0 || nx >= this.cols || ny >= this.rows) continue;
+        const cell = this.cells[ny * this.cols + nx];
+        for (let i = 0; i < cell.length; i++) {
+          const e = cell[i];
+          const ddx = e.pos.x - x, ddy = e.pos.y - y;
+          if (ddx * ddx + ddy * ddy <= r2) results.push(e);
+        }
+      }
+    }
+    return results;
+  }
+}
+
+// --- TERRAIN GENERATION ---
+function generateTerrain() {
+  // Simple noise-based terrain: 0=deep water, 1=shallow water, 2=beach, 3=land, 4=hills, 5=mountain
+  const tw = Math.ceil(WORLD_W / 40);
+  const th = Math.ceil(WORLD_H / 40);
+  const terrain = new Array(tw * th);
+
+  // Simple layered noise
+  function noise2d(x, y, seed) {
+    const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
+    return n - Math.floor(n);
+  }
+
+  function fbm(x, y) {
+    let val = 0, amp = 1, freq = 1, total = 0;
+    for (let i = 0; i < 4; i++) {
+      val += noise2d(x * freq * 0.02, y * freq * 0.02, i * 100) * amp;
+      total += amp;
+      amp *= 0.5;
+      freq *= 2;
+    }
+    return val / total;
+  }
+
+  for (let ty = 0; ty < th; ty++) {
+    for (let tx = 0; tx < tw; tx++) {
+      let h = fbm(tx, ty);
+      // Create island/coastline shape
+      const cx = tx / tw - 0.5, cy = ty / th - 0.5;
+      const edgeDist = 1 - Math.sqrt(cx*cx + cy*cy) * 2;
+      h = h * 0.6 + edgeDist * 0.4;
+      // Add some variation for interesting coastlines
+      h += Math.sin(tx * 0.1) * 0.05 + Math.cos(ty * 0.08) * 0.05;
+
+      let type;
+      if (h < 0.3) type = 0;        // deep water
+      else if (h < 0.4) type = 1;    // shallow water
+      else if (h < 0.45) type = 2;   // beach
+      else if (h < 0.65) type = 3;   // land
+      else if (h < 0.78) type = 4;   // hills
+      else type = 5;                  // mountain
+
+      terrain[ty * tw + tx] = type;
+    }
+  }
+  return { data: terrain, w: tw, h: th, tileSize: 40 };
+}
+
+const TERRAIN_COLORS = [
+  '#081830', // deep water
+  '#0c2848', // shallow water
+  '#3a4a2a', // beach
+  '#1a2a18', // land
+  '#2a3520', // hills
+  '#4a4a38', // mountain
+];
+
+// --- ENTITY ---
+let nextId = 0;
+function createEntity(type, team, x, y) {
+  const stats = DRONE_STATS[type];
+  return {
+    id: nextId++,
+    type,
+    team,
+    domain: stats.domain,
+    pos: v2(x, y),
+    vel: v2(rand(-0.5, 0.5), rand(-0.5, 0.5)),
+    heading: rand(0, Math.PI * 2),
+    hp: stats.hp,
+    maxHp: stats.hp,
+    speed: stats.speed,
+    range: stats.range,
+    damage: stats.damage,
+    rof: stats.rof,
+    sensor: stats.sensor,
+    stealth: stats.stealth,
+    size: stats.size,
+    state: 'idle',
+    order: null,
+    orderTarget: null,
+    target: null,
+    fireCooldown: 0,
+    swarmId: -1,
+    selected: false,
+    jammed: false,
+    hacked: false,
+    hackTimer: 0,
+    alive: true,
+    label: stats.label,
+    jamRadius: stats.jamRadius || 0,
+    healRadius: stats.healRadius || 0,
+    healRate: stats.healRate || 0,
+    trail: [],
+    formation: null,
+    formationOffset: null,
+    dying: false,
+    deathTimer: 0,
+    deathMaxTimer: 30,
+    boss: false,
+    retreating: false,
+    baseDamage: stats.damage,
+    baseHp: stats.hp,
+    baseSpeed: stats.speed,
+    baseSensor: stats.sensor,
+  };
+}
+
+// --- PROJECTILE POOL ---
+const MAX_PROJECTILES = 2000;
+const projectiles = [];
+function spawnProjectile(from, to, team) {
+  if (projectiles.length >= MAX_PROJECTILES) return;
+  const dir = v2norm(v2sub(to, from));
+  projectiles.push({
+    pos: { x: from.x, y: from.y },
+    prevPos: { x: from.x, y: from.y },
+    vel: v2scale(dir, 12),
+    team,
+    life: 30,
+    damage: 0,
+  });
+  // Muzzle flash
+  effects.push({ type: 'flash', pos: v2(from.x, from.y), life: 4, maxLife: 4, color: team === TEAM_BLUE ? '#88eeff' : '#ffaa44' });
+  // Sound
+  playSound('laser', team);
+}
+
+// --- PARTICLES ---
+const MAX_PARTICLES = 300;
+const particles = [];
+function spawnParticles(x, y, count, color, speed, life) {
+  for (let i = 0; i < count && particles.length < MAX_PARTICLES; i++) {
+    const ang = rand(0, Math.PI * 2);
+    const spd = rand(speed * 0.3, speed);
+    particles.push({
+      pos: v2(x + rand(-3, 3), y + rand(-3, 3)),
+      vel: v2(Math.cos(ang) * spd, Math.sin(ang) * spd),
+      life,
+      maxLife: life,
+      color,
+      size: rand(1, 3),
+    });
+  }
+}
+
+// --- EFFECTS ---
+const effects = [];
+function spawnExplosion(x, y, size, color) {
+  // Multi-ring explosion
+  effects.push({ type: 'explosion', pos: v2(x, y), size, maxSize: size, color, life: 25, maxLife: 25 });
+  effects.push({ type: 'explosion', pos: v2(x, y), size: size * 0.6, maxSize: size * 0.6, color: '#ffffff', life: 12, maxLife: 12 });
+  effects.push({ type: 'shockwave', pos: v2(x, y), size: size * 2, maxSize: size * 2, life: 20, maxLife: 20 });
+  // Debris particles
+  spawnParticles(x, y, 8, color, 3, 25);
+  // Screen shake
+  game.screenShake = Math.max(game.screenShake || 0, size * 0.3);
+  // Sound
+  playSound('explosion');
+}
+function spawnDmgText(x, y, text, color) {
+  effects.push({ type: 'dmgText', pos: v2(x, y - 10), text, color, life: 40, maxLife: 40 });
+}
+
+// --- GAME STATE ---
+const game = {
+  state: 'menu', // menu, playing, paused, gameover
+  mode: 'standard',
+  entities: [],
+  grid: null,
+  terrain: null,
+  camera: { x: WORLD_W / 2 - 400, y: WORLD_H / 2 - 300, zoom: 1 },
+  selection: [],
+  controlGroups: {},
+  spectrum: { radar: 40, comms: 35, jam: 25 },
+  supply: 1000,
+  supplyRate: 2, // per second
+  wave: 0,
+  waveTimer: 0,
+  kills: 0,
+  time: 0,
+  paused: false,
+  nextSwarmId: 0,
+  intelLog: [],
+  cyberCooldowns: { hack: 0, emp: 0 },
+  difficulty: 1,
+  keys: {},
+  mouse: { x: 0, y: 0, worldX: 0, worldY: 0, down: false, right: false },
+  dragStart: null,
+  commandMode: null,
+  screenShake: 0,
+  capturePoints: [],
+  supplyDrops: [],
+  supplyDropTimer: 0,
+  lastClickTime: 0,
+  lastClickType: null,
+  audioCtx: null,
+  speedMult: 1,
+  rallyPoint: null,
+  settingRally: false,
+  upgrades: { damage: 0, hp: 0, speed: 0, sensor: 0 },
+  upgradeMaxLevel: 3,
+  upgradeCosts: [200, 400, 800],
+  autoDeploy: {},
+  pendingWave: null,
+  wavePreviewTimer: 0,
+  redAITimer: 0,
+  probeTimer: 0,
+};
+
+// --- CANVAS SETUP ---
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const mmCanvas = document.getElementById('minimapCanvas');
+const mmCtx = mmCanvas.getContext('2d');
+let terrainCanvas, terrainCtx;
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  mmCanvas.width = 220;
+  mmCanvas.height = 155;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// --- WEB AUDIO ---
+let audioThrottle = { laser: 0, explosion: 0, ui: 0 };
+function initAudio() {
+  if (game.audioCtx) return;
+  try { game.audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+}
+function playSound(type, team) {
+  if (!game.audioCtx) return;
+  const now = game.audioCtx.currentTime;
+  if (type === 'laser') {
+    if (now - audioThrottle.laser < 0.05) return;
+    audioThrottle.laser = now;
+    const osc = game.audioCtx.createOscillator();
+    const gain = game.audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(team === TEAM_BLUE ? 900 : 600, now);
+    osc.frequency.exponentialRampToValueAtTime(200, now + 0.06);
+    gain.gain.setValueAtTime(0.03, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+    osc.connect(gain).connect(game.audioCtx.destination);
+    osc.start(now); osc.stop(now + 0.07);
+  } else if (type === 'explosion') {
+    if (now - audioThrottle.explosion < 0.1) return;
+    audioThrottle.explosion = now;
+    const osc = game.audioCtx.createOscillator();
+    const gain = game.audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(120, now);
+    osc.frequency.exponentialRampToValueAtTime(30, now + 0.3);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    osc.connect(gain).connect(game.audioCtx.destination);
+    osc.start(now); osc.stop(now + 0.35);
+  } else if (type === 'ui') {
+    if (now - audioThrottle.ui < 0.05) return;
+    audioThrottle.ui = now;
+    const osc = game.audioCtx.createOscillator();
+    const gain = game.audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1200, now);
+    gain.gain.setValueAtTime(0.04, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+    osc.connect(gain).connect(game.audioCtx.destination);
+    osc.start(now); osc.stop(now + 0.04);
+  } else if (type === 'pickup') {
+    const osc = game.audioCtx.createOscillator();
+    const gain = game.audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600, now);
+    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+    gain.gain.setValueAtTime(0.06, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    osc.connect(gain).connect(game.audioCtx.destination);
+    osc.start(now); osc.stop(now + 0.15);
+  }
+}
+
+// --- TERRAIN RENDERING (cached) ---
+function renderTerrainCache() {
+  terrainCanvas = document.createElement('canvas');
+  terrainCanvas.width = game.terrain.w * game.terrain.tileSize;
+  terrainCanvas.height = game.terrain.h * game.terrain.tileSize;
+  terrainCtx = terrainCanvas.getContext('2d');
+
+  for (let ty = 0; ty < game.terrain.h; ty++) {
+    for (let tx = 0; tx < game.terrain.w; tx++) {
+      const type = game.terrain.data[ty * game.terrain.w + tx];
+      terrainCtx.fillStyle = TERRAIN_COLORS[type];
+      terrainCtx.fillRect(tx * game.terrain.tileSize, ty * game.terrain.tileSize, game.terrain.tileSize, game.terrain.tileSize);
+    }
+  }
+
+  // Grid lines
+  terrainCtx.strokeStyle = 'rgba(0,255,200,0.04)';
+  terrainCtx.lineWidth = 0.5;
+  for (let x = 0; x < WORLD_W; x += 200) {
+    terrainCtx.beginPath();
+    terrainCtx.moveTo(x, 0);
+    terrainCtx.lineTo(x, WORLD_H);
+    terrainCtx.stroke();
+  }
+  for (let y = 0; y < WORLD_H; y += 200) {
+    terrainCtx.beginPath();
+    terrainCtx.moveTo(0, y);
+    terrainCtx.lineTo(WORLD_W, y);
+    terrainCtx.stroke();
+  }
+}
+
+// --- GET TERRAIN AT WORLD POS ---
+function getTerrainAt(x, y) {
+  const tx = clamp(Math.floor(x / game.terrain.tileSize), 0, game.terrain.w - 1);
+  const ty = clamp(Math.floor(y / game.terrain.tileSize), 0, game.terrain.h - 1);
+  return game.terrain.data[ty * game.terrain.w + tx];
+}
+
+function isWater(x, y) { return getTerrainAt(x, y) <= 1; }
+function isLand(x, y) { return getTerrainAt(x, y) >= 2; }
+
+// --- CAN UNIT MOVE TO ---
+function canMoveTo(entity, x, y) {
+  if (entity.domain === DOMAIN_AIR) return true; // air can go anywhere
+  if (entity.domain === DOMAIN_SEA) return getTerrainAt(x, y) <= 1; // water only
+  if (entity.domain === DOMAIN_LAND) return getTerrainAt(x, y) >= 2; // land only
+  return true;
+}
+
+// --- SWARM BEHAVIOR ---
+function updateSwarmBehavior(entity, dt) {
+  if (!entity.alive || entity.hacked) return;
+
+  const neighbors = game.grid.query(entity.pos.x, entity.pos.y, 120);
+  let separation = v2(0, 0);
+  let alignment = v2(0, 0);
+  let cohesion = v2(0, 0);
+  let sepCount = 0, aliCount = 0, cohCount = 0;
+
+  for (const n of neighbors) {
+    if (n.id === entity.id || n.team !== entity.team || !n.alive) continue;
+    const d = v2dist(entity.pos, n.pos);
+
+    if (d < 30 && d > 0) {
+      separation = v2add(separation, v2scale(v2norm(v2sub(entity.pos, n.pos)), 30 / d));
+      sepCount++;
+    }
+    if (d < 80 && n.swarmId === entity.swarmId) {
+      alignment = v2add(alignment, n.vel);
+      aliCount++;
+    }
+    if (d < 120 && n.swarmId === entity.swarmId) {
+      cohesion = v2add(cohesion, n.pos);
+      cohCount++;
+    }
+  }
+
+  let steer = v2(0, 0);
+
+  if (sepCount > 0) steer = v2add(steer, v2scale(v2norm(separation), 2.5));
+  if (aliCount > 0) steer = v2add(steer, v2scale(v2norm(v2sub(v2scale(alignment, 1/aliCount), entity.vel)), 0.8));
+  if (cohCount > 0) {
+    const center = v2scale(cohesion, 1/cohCount);
+    steer = v2add(steer, v2scale(v2norm(v2sub(center, entity.pos)), 0.6));
+  }
+
+  // Goal seeking
+  if (entity.order === 'attack' && entity.orderTarget) {
+    steer = v2add(steer, v2scale(v2norm(v2sub(entity.orderTarget, entity.pos)), 1.5));
+  } else if (entity.order === 'defend' && entity.orderTarget) {
+    const d = v2dist(entity.pos, entity.orderTarget);
+    if (d > 150) steer = v2add(steer, v2scale(v2norm(v2sub(entity.orderTarget, entity.pos)), 1.2));
+    else steer = v2add(steer, v2scale(v2norm(v2sub(entity.orderTarget, entity.pos)), -0.3));
+  } else if (entity.order === 'patrol' && entity.orderTarget) {
+    const d = v2dist(entity.pos, entity.orderTarget);
+    if (d < 80) entity.orderTarget = v2(entity.orderTarget.x + rand(-200, 200), entity.orderTarget.y + rand(-200, 200));
+    steer = v2add(steer, v2scale(v2norm(v2sub(entity.orderTarget, entity.pos)), 1));
+  } else if (entity.order === 'rtb') {
+    const base = v2(WORLD_W * 0.15, WORLD_H * 0.5);
+    steer = v2add(steer, v2scale(v2norm(v2sub(base, entity.pos)), 1.5));
+  } else if (entity.order === 'scatter') {
+    steer = v2add(steer, v2(rand(-2, 2), rand(-2, 2)));
+  } else if (entity.order === 'hold') {
+    // Stay put, reduce velocity
+    steer = v2add(steer, v2scale(entity.vel, -0.5));
+  }
+
+  // Formation offset
+  if (entity.formationOffset) {
+    const formTarget = entity.orderTarget ? v2add(entity.orderTarget, entity.formationOffset) : v2add(entity.pos, entity.formationOffset);
+    steer = v2add(steer, v2scale(v2norm(v2sub(formTarget, entity.pos)), 0.7));
+  }
+
+  // Auto-engage enemies in range
+  if (entity.range > 0 && !entity.target) {
+    const enemies = game.grid.query(entity.pos.x, entity.pos.y, entity.range);
+    let closest = null, closestDist = Infinity;
+    for (const e of enemies) {
+      if (e.team === entity.team || !e.alive) continue;
+      // Stealth check
+      const effectiveSensor = entity.sensor * (game.spectrum.radar / 50);
+      if (e.stealth > 0 && Math.random() > (1 - e.stealth) * (effectiveSensor / 300)) continue;
+      const d = v2dist(entity.pos, e.pos);
+      if (d < closestDist) { closest = e; closestDist = d; }
+    }
+    if (closest) entity.target = closest;
+  }
+
+  // Seek target
+  if (entity.target && entity.target.alive) {
+    const d = v2dist(entity.pos, entity.target.pos);
+    if (d > entity.range * 1.5) entity.target = null;
+    else if (d > entity.range * 0.7) {
+      steer = v2add(steer, v2scale(v2norm(v2sub(entity.target.pos, entity.pos)), 2));
+    }
+  } else {
+    entity.target = null;
+  }
+
+  // Threat avoidance for non-combat units
+  if (entity.range === 0) {
+    const threats = game.grid.query(entity.pos.x, entity.pos.y, 200);
+    for (const t of threats) {
+      if (t.team === entity.team || !t.alive || t.range === 0) continue;
+      const d = v2dist(entity.pos, t.pos);
+      if (d < t.range) {
+        steer = v2add(steer, v2scale(v2norm(v2sub(entity.pos, t.pos)), 3));
+      }
+    }
+  }
+
+  // World bounds
+  if (entity.pos.x < 50) steer.x += 3;
+  if (entity.pos.x > WORLD_W - 50) steer.x -= 3;
+  if (entity.pos.y < 50) steer.y += 3;
+  if (entity.pos.y > WORLD_H - 50) steer.y -= 3;
+
+  // Jammed: reduce coordination
+  const speedMult = entity.jammed ? 0.6 : 1;
+  const commsMult = game.spectrum.comms / 40; // comms affects coordination quality
+
+  steer = v2limit(steer, entity.speed * 0.3);
+  entity.vel = v2add(entity.vel, v2scale(steer, dt * commsMult));
+  entity.vel = v2limit(entity.vel, entity.speed * speedMult);
+
+  // Check terrain validity
+  const nextPos = v2add(entity.pos, v2scale(entity.vel, dt));
+  if (canMoveTo(entity, nextPos.x, nextPos.y)) {
+    entity.pos = nextPos;
+  } else {
+    // Bounce off invalid terrain
+    entity.vel = v2scale(entity.vel, -0.5);
+    entity.vel = v2add(entity.vel, v2(rand(-1, 1), rand(-1, 1)));
+  }
+
+  entity.heading = Math.atan2(entity.vel.y, entity.vel.x);
+
+  // Trail
+  if (entity.domain === DOMAIN_AIR && Math.random() < 0.3) {
+    entity.trail.push({ x: entity.pos.x, y: entity.pos.y, life: 20 });
+    if (entity.trail.length > 15) entity.trail.shift();
+  }
+}
+
+// --- COMBAT ---
+function updateCombat(entity, dt) {
+  if (!entity.alive || entity.hacked) return;
+
+  entity.fireCooldown -= dt;
+
+  if (entity.target && entity.target.alive && entity.range > 0 && entity.fireCooldown <= 0) {
+    const d = v2dist(entity.pos, entity.target.pos);
+    if (d <= entity.range) {
+      // Accuracy check: degraded by enemy jamming
+      let accuracy = 0.7;
+      if (entity.jammed) accuracy *= 0.4;
+      accuracy *= (1 - entity.target.stealth * 0.5);
+
+      if (Math.random() < accuracy) {
+        entity.target.hp -= entity.damage;
+        spawnProjectile(entity.pos, entity.target.pos, entity.team);
+
+        // Damage number (only show for significant hits)
+        if (entity.damage >= 15) {
+          spawnDmgText(entity.target.pos.x, entity.target.pos.y,
+            entity.damage.toString(),
+            entity.team === TEAM_BLUE ? '#ffcc00' : '#ff6644');
+        }
+
+        if (entity.target.hp <= 0) {
+          // Death animation instead of instant removal
+          entity.target.dying = true;
+          entity.target.deathTimer = entity.target.deathMaxTimer;
+          entity.target.alive = false;
+          const expSize = entity.target.boss ? entity.target.size * 6 : entity.target.size * 3;
+          spawnExplosion(entity.target.pos.x, entity.target.pos.y,
+            expSize,
+            entity.target.team === TEAM_RED ? '#ff4422' : '#00aaff');
+          if (entity.team === TEAM_BLUE) {
+            game.kills++;
+            // Kill feed
+            const label = entity.target.boss ? `BOSS ${entity.target.label}` : entity.target.label;
+            addIntel(`KILL: ${label} DESTROYED`, null);
+            // Boss kill bonus
+            if (entity.target.boss) {
+              game.supply += 200;
+              addIntel('BOSS KILL BONUS: +200 SUPPLY', 'warning');
+            }
+          } else {
+            addIntel(`LOST: ${entity.target.label} DOWN`, 'warning');
+          }
+          entity.target = null;
+        }
+      }
+      entity.fireCooldown = entity.rof;
+    }
+  }
+
+  // Supply bot healing
+  if (entity.healRadius > 0) {
+    const nearby = game.grid.query(entity.pos.x, entity.pos.y, entity.healRadius);
+    for (const n of nearby) {
+      if (n.team === entity.team && n.alive && n.hp < n.maxHp && n.id !== entity.id) {
+        n.hp = Math.min(n.maxHp, n.hp + entity.healRate);
+      }
+    }
+  }
+}
+
+// --- ELECTRONIC WARFARE ---
+function updateEW(entity, dt) {
+  if (!entity.alive || entity.jamRadius <= 0) return;
+
+  const jamPower = game.spectrum.jam / 30;
+  const affected = game.grid.query(entity.pos.x, entity.pos.y, entity.jamRadius * jamPower);
+  for (const e of affected) {
+    if (e.team !== entity.team && e.alive) {
+      e.jammed = true;
+    }
+  }
+}
+
+// --- RED FORCE AI ---
+function updateRedAI(dt) {
+  game.waveTimer -= dt;
+
+  // Pre-compute pending wave for preview
+  if (!game.pendingWave && game.waveTimer > 0) {
+    prepareNextWave();
+  }
+
+  // Wave preview banner (show 4 seconds before wave)
+  if (game.pendingWave && game.waveTimer <= 240 && game.waveTimer > 0 && game.wavePreviewTimer <= 0) {
+    game.wavePreviewTimer = 240;
+    showWavePreview();
+  }
+  game.wavePreviewTimer -= dt;
+  if (game.wavePreviewTimer <= 0) {
+    const banner = document.getElementById('wavePreviewBanner');
+    if (banner) banner.style.display = 'none';
+  }
+
+  if (game.waveTimer <= 0) {
+    game.wave++;
+    executeWave();
+    game.pendingWave = null;
+
+    const interval = Math.max(300, 900 - game.wave * 50);
+    game.waveTimer = interval;
+
+    addIntel(`WAVE ${game.wave} INCOMING — HOSTILE CONTACTS DETECTED`, 'critical');
+    document.getElementById('alertTicker').textContent = `⚠ WAVE ${game.wave} — ENEMY SWARMS INBOUND`;
+  }
+
+  // Red AI strategic behavior: redirect units to capture points
+  game.redAITimer -= dt;
+  if (game.redAITimer <= 0) {
+    game.redAITimer = 120; // every 2 seconds
+    redirectRedToCaptures();
+  }
+
+  // Probing attacks between waves
+  game.probeTimer -= dt;
+  if (game.probeTimer <= 0 && game.waveTimer > 400 && game.wave >= 2) {
+    game.probeTimer = rand(600, 1200); // every 10-20 seconds
+    spawnRedProbe();
+  }
+
+  // Red retreat logic
+  for (const e of game.entities) {
+    if (e.team !== TEAM_RED || !e.alive || e.boss) continue;
+    if (e.hp < e.maxHp * 0.25 && !e.retreating) {
+      e.retreating = true;
+      e.order = 'rtb';
+      e.orderTarget = v2(WORLD_W - 200, e.pos.y);
+    }
+    // Recover from retreat when healed enough or far enough east
+    if (e.retreating && (e.hp > e.maxHp * 0.5 || e.pos.x > WORLD_W - 300)) {
+      e.retreating = false;
+      e.order = 'attack';
+      e.orderTarget = FLANK_TARGETS[randInt(0, 2)];
+    }
+  }
+
+  // Red cyber attacks
+  if (game.wave > 2 && Math.random() < 0.0003 * game.difficulty) {
+    launchRedCyberAttack();
+  }
+}
+
+function prepareNextWave() {
+  const template = WAVE_TEMPLATES[(game.wave) % WAVE_TEMPLATES.length];
+  const baseCount = Math.floor(5 + (game.wave + 1) * 3 * game.difficulty);
+  const repeats = Math.ceil(baseCount / template.types.length);
+  const types = [];
+  for (let r = 0; r < repeats; r++) {
+    for (const t of template.types) {
+      types.push(t);
+      if (types.length >= baseCount) break;
+    }
+    if (types.length >= baseCount) break;
+  }
+  const hasBoss = (game.wave + 1) >= 3 && (game.wave + 1) % 3 === 0;
+
+  // Count types for display
+  const counts = {};
+  for (const t of types) counts[t] = (counts[t] || 0) + 1;
+
+  game.pendingWave = { template, types, hasBoss, counts };
+}
+
+function showWavePreview() {
+  const pw = game.pendingWave;
+  if (!pw) return;
+  const banner = document.getElementById('wavePreviewBanner');
+  if (!banner) return;
+  const countStr = Object.entries(pw.counts).map(([t, c]) => `${c}x ${DRONE_STATS[t]?.label || t}`).join(', ');
+  const bossStr = pw.hasBoss ? ' + BOSS' : '';
+  banner.innerHTML = `<div class="wave-label" style="color:${pw.template.color}">WAVE ${game.wave + 1} — ${pw.template.label}</div><div class="wave-comp">${countStr}${bossStr}</div>`;
+  banner.style.display = 'block';
+}
+
+function executeWave() {
+  const pw = game.pendingWave;
+  if (!pw) { spawnRedWaveFallback(); return; }
+
+  const spawnPoints = [
+    v2(WORLD_W - 200, WORLD_H * 0.3),
+    v2(WORLD_W - 200, WORLD_H * 0.7),
+    v2(WORLD_W * 0.7, 100),
+    v2(WORLD_W * 0.7, WORLD_H - 100),
+  ];
+
+  // Split into 2-3 flanking groups
+  const numGroups = game.wave >= 4 ? 3 : 2;
+  const groups = Array.from({ length: numGroups }, () => []);
+  pw.types.forEach((t, i) => groups[i % numGroups].push(t));
+
+  for (let g = 0; g < numGroups; g++) {
+    const swarmId = game.nextSwarmId++;
+    const flankTarget = FLANK_TARGETS[g % FLANK_TARGETS.length];
+    const sp = spawnPoints[g % spawnPoints.length];
+
+    for (const type of groups[g]) {
+      const stats = DRONE_STATS[type];
+      let x = sp.x + rand(-150, 150);
+      let y = sp.y + rand(-150, 150);
+
+      if (stats.domain === DOMAIN_SEA && !isWater(x, y)) { x = WORLD_W - 100; y = rand(100, WORLD_H - 100); }
+      if (stats.domain === DOMAIN_LAND && !isLand(x, y)) { x = WORLD_W * 0.8; y = WORLD_H * 0.5 + rand(-200, 200); }
+
+      const e = createEntity(type, TEAM_RED, x, y);
+      e.swarmId = swarmId;
+      e.order = 'attack';
+      e.orderTarget = v2(flankTarget.x + rand(-80, 80), flankTarget.y + rand(-80, 80));
+      game.entities.push(e);
+    }
+  }
+
+  // Boss units every 3rd wave starting at wave 3
+  if (pw.hasBoss) {
+    const bossTypes = ['ngad', 'ugv', 'usv', 'f47'];
+    const bossType = bossTypes[game.wave % bossTypes.length];
+    const bStats = DRONE_STATS[bossType];
+    let bx = WORLD_W - 300, by = WORLD_H * 0.5;
+    if (bStats.domain === DOMAIN_SEA && !isWater(bx, by)) { bx = WORLD_W - 100; by = WORLD_H * 0.8; }
+    const boss = createEntity(bossType, TEAM_RED, bx, by);
+    boss.hp *= 3; boss.maxHp *= 3; boss.baseHp *= 3; boss.damage *= 1.5; boss.baseDamage *= 1.5;
+    boss.size *= 1.8; boss.speed *= 0.7;
+    boss.boss = true;
+    boss.swarmId = game.nextSwarmId++;
+    boss.order = 'attack';
+    boss.orderTarget = v2(WORLD_W * 0.15, WORLD_H * 0.5);
+    game.entities.push(boss);
+    addIntel(`BOSS CONTACT — HEAVY ${boss.label} DETECTED`, 'critical');
+  }
+}
+
+function spawnRedWaveFallback() {
+  // Fallback if no pending wave
+  const baseCount = Math.floor(5 + game.wave * 3 * game.difficulty);
+  for (let i = 0; i < baseCount; i++) {
+    const type = RED_TYPES[randInt(0, RED_TYPES.length - 1)];
+    const e = createEntity(type, TEAM_RED, WORLD_W - 200 + rand(-100, 100), rand(200, WORLD_H - 200));
+    e.swarmId = game.nextSwarmId;
+    e.order = 'attack';
+    e.orderTarget = FLANK_TARGETS[randInt(0, FLANK_TARGETS.length - 1)];
+    game.entities.push(e);
+  }
+  game.nextSwarmId++;
+}
+
+function redirectRedToCaptures() {
+  // Find blue-owned capture points
+  const blueCPs = game.capturePoints.filter(cp => cp.owner === TEAM_BLUE);
+  if (blueCPs.length === 0) return;
+
+  const redUnits = game.entities.filter(e => e.team === TEAM_RED && e.alive && !e.boss && !e.retreating);
+  if (redUnits.length < 6) return;
+
+  // Redirect 20-30% of red units toward a random blue capture point
+  const cp = blueCPs[randInt(0, blueCPs.length - 1)];
+  const count = Math.floor(redUnits.length * rand(0.15, 0.3));
+  for (let i = 0; i < count; i++) {
+    const u = redUnits[randInt(0, redUnits.length - 1)];
+    u.orderTarget = v2(cp.pos.x + rand(-50, 50), cp.pos.y + rand(-50, 50));
+  }
+}
+
+function spawnRedProbe() {
+  const probeSize = randInt(2, 4);
+  const swarmId = game.nextSwarmId++;
+  const probeY = rand(WORLD_H * 0.2, WORLD_H * 0.8);
+  for (let i = 0; i < probeSize; i++) {
+    const type = Math.random() < 0.5 ? 'cca' : 'recon';
+    const e = createEntity(type, TEAM_RED, WORLD_W - 100 + rand(-50, 50), probeY + rand(-40, 40));
+    e.swarmId = swarmId;
+    e.order = 'patrol';
+    e.orderTarget = v2(WORLD_W * 0.4 + rand(-200, 200), probeY + rand(-100, 100));
+    game.entities.push(e);
+  }
+  addIntel('ENEMY PROBE DETECTED — SMALL CONTACT', 'warning');
+}
+
+function launchRedCyberAttack() {
+  const blueUnits = game.entities.filter(e => e.team === TEAM_BLUE && e.alive);
+  if (blueUnits.length === 0) return;
+
+  const type = Math.random() < 0.5 ? 'scramble' : 'spoof';
+  if (type === 'scramble') {
+    // Scramble comms - random blue units lose coordination
+    const count = Math.min(10, blueUnits.length);
+    for (let i = 0; i < count; i++) {
+      const u = blueUnits[randInt(0, blueUnits.length - 1)];
+      u.jammed = true;
+      setTimeout(() => { if (u.alive) u.jammed = false; }, 5000);
+    }
+    addIntel('CYBER ATTACK — COMMS SCRAMBLED', 'critical');
+    document.getElementById('alertTicker').textContent = '⚠ CYBER ATTACK — COMMS DISRUPTION';
+  } else {
+    addIntel('CYBER — ENEMY SPOOFING DETECTED', 'warning');
+  }
+}
+
+// --- CYBER OPS (PLAYER) ---
+function launchCyberOp(type) {
+  if (game.state !== 'playing') return;
+
+  if (type === 'hack' && game.cyberCooldowns.hack <= 0 && game.supply >= 300) {
+    game.supply -= 300;
+    game.cyberCooldowns.hack = 1800; // 30 seconds
+
+    // Hack nearest enemy swarm
+    const center = v2(game.camera.x + canvas.width / 2, game.camera.y + canvas.height / 2);
+    const enemies = game.entities.filter(e => e.team === TEAM_RED && e.alive);
+    if (enemies.length > 0) {
+      enemies.sort((a, b) => v2dist(a.pos, center) - v2dist(b.pos, center));
+      const count = Math.min(8, enemies.length);
+      for (let i = 0; i < count; i++) {
+        enemies[i].hacked = true;
+        enemies[i].hackTimer = 300; // 5 seconds
+      }
+      addIntel('CYBER OP — ENEMY SWARM HACKED', 'warning');
+    }
+  }
+
+  if (type === 'emp' && game.cyberCooldowns.emp <= 0 && game.supply >= 400) {
+    game.supply -= 400;
+    game.cyberCooldowns.emp = 3600; // 60 seconds
+
+    const center = v2(game.mouse.worldX, game.mouse.worldY);
+    const affected = game.grid.query(center.x, center.y, 300);
+    for (const e of affected) {
+      if (e.team === TEAM_RED && e.alive) {
+        e.hp -= 30;
+        e.jammed = true;
+        if (e.hp <= 0) {
+          e.alive = false;
+          spawnExplosion(e.pos.x, e.pos.y, e.size * 2, '#4488ff');
+          game.kills++;
+        }
+      }
+    }
+    spawnExplosion(center.x, center.y, 60, '#4488ff');
+    addIntel('EMP BURST DEPLOYED', 'warning');
+  }
+}
+
+// --- DEPLOY SWARMS ---
+function deploySwarm(type) {
+  if (game.state !== 'playing') return;
+  const stats = DRONE_STATS[type];
+  const cost = getCost(type);
+  if (game.supply < cost) {
+    addIntel('INSUFFICIENT SUPPLY', 'warning');
+    playSound('ui');
+    return;
+  }
+
+  playSound('ui');
+  game.supply -= cost;
+  const swarmId = game.nextSwarmId++;
+  const baseX = WORLD_W * 0.12;
+  const baseY = WORLD_H * 0.5;
+
+  for (let i = 0; i < stats.count; i++) {
+    let x = baseX + rand(-60, 60);
+    let y = baseY + rand(-60, 60);
+
+    if (stats.domain === DOMAIN_SEA) {
+      x = 150; y = WORLD_H * 0.8 + rand(-50, 50);
+      if (!isWater(x, y)) { x = 100; y = WORLD_H - 200; }
+    }
+
+    const e = createEntity(type, TEAM_BLUE, x, y);
+    // Apply upgrade multipliers
+    applyUpgradesToEntity(e);
+    e.swarmId = swarmId;
+    // Rally point or default defend
+    if (game.rallyPoint) {
+      e.order = 'attack';
+      e.orderTarget = v2(game.rallyPoint.x + rand(-30, 30), game.rallyPoint.y + rand(-30, 30));
+    } else {
+      e.order = 'defend';
+      e.orderTarget = v2(WORLD_W * 0.2, WORLD_H * 0.5);
+    }
+    game.entities.push(e);
+  }
+
+  addIntel(`DEPLOYED: ${stats.count}x ${stats.label}`, null);
+}
+
+function applyUpgradesToEntity(e) {
+  if (e.team !== TEAM_BLUE) return;
+  e.damage = e.baseDamage * (1 + game.upgrades.damage * 0.2);
+  e.maxHp = e.baseHp * (1 + game.upgrades.hp * 0.2);
+  e.hp = e.maxHp;
+  e.speed = e.baseSpeed * (1 + game.upgrades.speed * 0.15);
+  e.sensor = e.baseSensor * (1 + game.upgrades.sensor * 0.3);
+}
+
+function purchaseUpgrade(stat) {
+  if (game.state !== 'playing') return;
+  const level = game.upgrades[stat];
+  if (level >= game.upgradeMaxLevel) { addIntel('MAX LEVEL REACHED', 'warning'); return; }
+  const cost = game.upgradeCosts[level];
+  if (game.supply < cost) { addIntel('INSUFFICIENT SUPPLY FOR UPGRADE', 'warning'); return; }
+
+  playSound('ui');
+  game.supply -= cost;
+  game.upgrades[stat]++;
+
+  // Apply to all existing blue units
+  for (const e of game.entities) {
+    if (e.team === TEAM_BLUE && e.alive) {
+      const oldMaxHp = e.maxHp;
+      applyUpgradesToEntity(e);
+      // Preserve HP ratio for HP upgrades
+      if (stat === 'hp') e.hp = (e.hp / oldMaxHp) * e.maxHp;
+    }
+  }
+  const labels = { damage: 'DAMAGE', hp: 'ARMOR', speed: 'SPEED', sensor: 'SENSORS' };
+  addIntel(`UPGRADED: ${labels[stat]} LV${game.upgrades[stat]}`, 'warning');
+  updateUpgradePanel();
+}
+
+function updateUpgradePanel() {
+  const stats = ['damage', 'hp', 'speed', 'sensor'];
+  const labels = ['DMG', 'ARMOR', 'SPD', 'SENSOR'];
+  const pcts = ['+20%', '+20%', '+15%', '+30%'];
+  for (let i = 0; i < stats.length; i++) {
+    const btn = document.getElementById(`upgrade_${stats[i]}`);
+    if (!btn) continue;
+    const lv = game.upgrades[stats[i]];
+    if (lv >= game.upgradeMaxLevel) {
+      btn.textContent = `${labels[i]} MAX`;
+      btn.classList.add('on-cooldown');
+    } else {
+      btn.innerHTML = `${labels[i]} LV${lv+1} (${pcts[i]}) <span class="cost">${game.upgradeCosts[lv]}</span>`;
+      btn.classList.remove('on-cooldown');
+    }
+  }
+}
+
+function getCost(type) {
+  const costs = { ngad: 250, cca: 150, isr: 100, ew: 200, ugv: 120, recon: 80, supply: 100, usv: 160, uuv: 180, skimmer: 140, fury: 180, f47: 350 };
+  return costs[type] || 100;
+}
+
+// --- ORDERS ---
+function issueOrder(order) {
+  if (game.state !== 'playing') return;
+
+  if (order.startsWith('formation_')) {
+    applyFormation(order.replace('formation_', ''));
+    return;
+  }
+
+  for (const e of game.selection) {
+    if (!e.alive) continue;
+    e.order = order;
+    if (order === 'attack' || order === 'defend' || order === 'patrol') {
+      e.orderTarget = v2(game.mouse.worldX, game.mouse.worldY);
+    }
+  }
+}
+
+function applyFormation(type) {
+  const units = game.selection.filter(e => e.alive);
+  if (units.length === 0) return;
+
+  for (let i = 0; i < units.length; i++) {
+    const angle = (i / units.length) * Math.PI * 2;
+    const dist = 40 + units.length * 3;
+    if (type === 'wedge') {
+      units[i].formationOffset = v2(i * 25 - units.length * 12, Math.abs(i - units.length/2) * 20);
+    } else if (type === 'line') {
+      units[i].formationOffset = v2(i * 30 - units.length * 15, 0);
+    } else if (type === 'spread') {
+      units[i].formationOffset = v2(Math.cos(angle) * dist, Math.sin(angle) * dist);
+    }
+  }
+}
+
+// --- SPECTRUM ---
+function updateSpectrum() {
+  game.spectrum.radar = parseInt(document.getElementById('specRadar').value);
+  game.spectrum.comms = parseInt(document.getElementById('specComms').value);
+  game.spectrum.jam = parseInt(document.getElementById('specJam').value);
+  document.getElementById('specRadarVal').textContent = game.spectrum.radar;
+  document.getElementById('specCommsVal').textContent = game.spectrum.comms;
+  document.getElementById('specJamVal').textContent = game.spectrum.jam;
+  document.getElementById('specTotal').textContent = game.spectrum.radar + game.spectrum.comms + game.spectrum.jam;
+
+  const total = game.spectrum.radar + game.spectrum.comms + game.spectrum.jam;
+  document.getElementById('specTotal').style.color = total > 100 ? '#ff4444' : '#ffcc00';
+}
+
+// --- INTEL ---
+function addIntel(msg, severity) {
+  game.intelLog.unshift({ msg, severity, time: game.time });
+  if (game.intelLog.length > 20) game.intelLog.pop();
+  renderIntelFeed();
+}
+
+function renderIntelFeed() {
+  const el = document.getElementById('intelEntries');
+  el.innerHTML = game.intelLog.slice(0, 8).map(i => {
+    const cls = i.severity ? `intel-entry ${i.severity}` : 'intel-entry';
+    const t = Math.floor(i.time / 60);
+    const s = Math.floor(i.time % 60);
+    return `<div class="${cls}">[${String(t).padStart(2,'0')}:${String(s).padStart(2,'0')}] ${i.msg}</div>`;
+  }).join('');
+}
+
+// --- INPUT ---
+document.addEventListener('keydown', e => {
+  game.keys[e.key.toLowerCase()] = true;
+
+  if (game.state === 'playing') {
+    if (e.key === ' ') {
+      game.paused = !game.paused;
+      document.getElementById('alertTicker').textContent = game.paused ? 'PAUSED' : 'SYSTEMS NOMINAL';
+      e.preventDefault();
+    }
+    if (e.key === 'a') issueOrder('attack');
+    if (e.key === 'd') issueOrder('defend');
+    if (e.key === 'p') issueOrder('patrol');
+    if (e.key === 'r') issueOrder('rtb');
+    if (e.key === 's') issueOrder('scatter');
+    if (e.key === 'h') issueOrder('hold');
+    if (e.key === 'y') startSetRally();
+    if (e.key === '?') showInstructions();
+    if (e.key === 'Escape') {
+      const instrPanel = document.getElementById('instructionsPanel');
+      if (instrPanel.style.display === 'block') {
+        closeInstructions();
+      } else {
+        game.selection.forEach(e => e.selected = false);
+        game.selection = [];
+        game.commandMode = null;
+      }
+    }
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      cycleSwarms();
+    }
+
+    // Control groups
+    if (e.key >= '1' && e.key <= '5') {
+      if (e.ctrlKey || e.metaKey) {
+        game.controlGroups[e.key] = [...game.selection];
+        addIntel(`CTRL GROUP ${e.key} SET (${game.selection.length} UNITS)`, null);
+      } else if (game.controlGroups[e.key]) {
+        game.selection.forEach(u => u.selected = false);
+        game.selection = game.controlGroups[e.key].filter(u => u.alive);
+        game.selection.forEach(u => u.selected = true);
+      }
+    }
+  }
+});
+
+document.addEventListener('keyup', e => {
+  game.keys[e.key.toLowerCase()] = false;
+});
+
+canvas.addEventListener('mousedown', e => {
+  if (game.state !== 'playing') return;
+
+  if (e.button === 0) {
+    // Rally point placement
+    if (game.settingRally) {
+      const worldPos = screenToWorld(e.clientX, e.clientY);
+      game.rallyPoint = worldPos;
+      game.settingRally = false;
+      const rallyBtn = document.getElementById('rallyBtn');
+      if (rallyBtn) rallyBtn.classList.remove('active');
+      addIntel('Rally point set at (' + Math.round(worldPos.x) + ', ' + Math.round(worldPos.y) + ')', '#00ffcc');
+      return;
+    }
+    // Alt+Click (Option+Click on Mac) = move/attack command
+    if (e.altKey && game.selection.length > 0) {
+      const worldPos = screenToWorld(e.clientX, e.clientY);
+      for (const u of game.selection) {
+        if (!u.alive) continue;
+        const nearby = game.grid.query(worldPos.x, worldPos.y, 50);
+        const enemy = nearby.find(n => n.team !== u.team && n.alive);
+        if (enemy && u.range > 0) {
+          u.order = 'attack';
+          u.target = enemy;
+          u.orderTarget = worldPos;
+        } else {
+          u.order = 'attack';
+          u.orderTarget = worldPos;
+          u.formationOffset = null;
+        }
+      }
+      return; // Don't start drag-select
+    }
+    game.mouse.down = true;
+    game.dragStart = { x: e.clientX, y: e.clientY };
+  }
+});
+
+canvas.addEventListener('mouseup', e => {
+  if (game.state !== 'playing') return;
+
+  if (e.button === 0 && game.dragStart) {
+    const dx = e.clientX - game.dragStart.x;
+    const dy = e.clientY - game.dragStart.y;
+
+    if (Math.abs(dx) < 5 && Math.abs(dy) < 5) {
+      // Click select
+      const worldPos = screenToWorld(e.clientX, e.clientY);
+      const nearest = game.grid.query(worldPos.x, worldPos.y, 30);
+      const friendly = nearest.find(n => n.team === TEAM_BLUE && n.alive);
+
+      const now = Date.now();
+      const isDoubleClick = friendly && (now - game.lastClickTime < 350) && game.lastClickType === friendly.type;
+      game.lastClickTime = now;
+      game.lastClickType = friendly ? friendly.type : null;
+
+      if (!e.shiftKey) {
+        game.selection.forEach(u => u.selected = false);
+        game.selection = [];
+      }
+
+      if (isDoubleClick) {
+        // Double-click: select all visible units of same type
+        for (const ent of game.entities) {
+          if (ent.team !== TEAM_BLUE || !ent.alive || ent.type !== friendly.type) continue;
+          const sp = worldToScreen(ent.pos.x, ent.pos.y);
+          if (sp.x >= 0 && sp.x <= canvas.width && sp.y >= 0 && sp.y <= canvas.height) {
+            ent.selected = true;
+            game.selection.push(ent);
+          }
+        }
+        playSound('ui');
+      } else if (friendly) {
+        friendly.selected = true;
+        game.selection.push(friendly);
+        playSound('ui');
+      }
+    } else {
+      // Box select
+      if (!e.shiftKey) {
+        game.selection.forEach(u => u.selected = false);
+        game.selection = [];
+      }
+
+      const x1 = Math.min(game.dragStart.x, e.clientX);
+      const y1 = Math.min(game.dragStart.y, e.clientY);
+      const x2 = Math.max(game.dragStart.x, e.clientX);
+      const y2 = Math.max(game.dragStart.y, e.clientY);
+
+      const w1 = screenToWorld(x1, y1);
+      const w2 = screenToWorld(x2, y2);
+
+      for (const ent of game.entities) {
+        if (ent.team !== TEAM_BLUE || !ent.alive) continue;
+        if (ent.pos.x >= w1.x && ent.pos.x <= w2.x && ent.pos.y >= w1.y && ent.pos.y <= w2.y) {
+          ent.selected = true;
+          game.selection.push(ent);
+        }
+      }
+    }
+
+    updateSelectionInfo();
+    game.mouse.down = false;
+    game.dragStart = null;
+    document.getElementById('selectionBox').style.display = 'none';
+  }
+});
+
+canvas.addEventListener('mousemove', e => {
+  game.mouse.x = e.clientX;
+  game.mouse.y = e.clientY;
+  const wp = screenToWorld(e.clientX, e.clientY);
+  game.mouse.worldX = wp.x;
+  game.mouse.worldY = wp.y;
+
+  // Draw selection box
+  if (game.mouse.down && game.dragStart) {
+    const box = document.getElementById('selectionBox');
+    const x = Math.min(game.dragStart.x, e.clientX);
+    const y = Math.min(game.dragStart.y, e.clientY);
+    const w = Math.abs(e.clientX - game.dragStart.x);
+    const h = Math.abs(e.clientY - game.dragStart.y);
+    if (w > 5 || h > 5) {
+      box.style.display = 'block';
+      box.style.left = x + 'px';
+      box.style.top = y + 'px';
+      box.style.width = w + 'px';
+      box.style.height = h + 'px';
+    }
+  }
+});
+
+canvas.addEventListener('wheel', e => {
+  const zoomSpeed = 0.1;
+  const oldZoom = game.camera.zoom;
+  game.camera.zoom = clamp(game.camera.zoom + (e.deltaY > 0 ? -zoomSpeed : zoomSpeed), 0.3, 3);
+
+  // Zoom toward mouse position
+  const factor = game.camera.zoom / oldZoom;
+  game.camera.x = game.mouse.x / oldZoom + game.camera.x - game.mouse.x / game.camera.zoom;
+  game.camera.y = game.mouse.y / oldZoom + game.camera.y - game.mouse.y / game.camera.zoom;
+
+  e.preventDefault();
+}, { passive: false });
+
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+// Minimap click
+mmCanvas.addEventListener('mousedown', e => {
+  if (game.state !== 'playing') return;
+  const rect = mmCanvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) / rect.width;
+  const my = (e.clientY - rect.top) / rect.height;
+  game.camera.x = mx * WORLD_W - canvas.width / (2 * game.camera.zoom);
+  game.camera.y = my * WORLD_H - canvas.height / (2 * game.camera.zoom);
+});
+
+function screenToWorld(sx, sy) {
+  return {
+    x: sx / game.camera.zoom + game.camera.x,
+    y: sy / game.camera.zoom + game.camera.y,
+  };
+}
+
+function worldToScreen(wx, wy) {
+  return {
+    x: (wx - game.camera.x) * game.camera.zoom,
+    y: (wy - game.camera.y) * game.camera.zoom,
+  };
+}
+
+function cycleSwarms() {
+  const swarmIds = [...new Set(game.entities.filter(e => e.team === TEAM_BLUE && e.alive).map(e => e.swarmId))];
+  if (swarmIds.length === 0) return;
+
+  let currentSwarm = game.selection.length > 0 ? game.selection[0].swarmId : -1;
+  let idx = swarmIds.indexOf(currentSwarm);
+  idx = (idx + 1) % swarmIds.length;
+
+  game.selection.forEach(u => u.selected = false);
+  game.selection = game.entities.filter(e => e.team === TEAM_BLUE && e.alive && e.swarmId === swarmIds[idx]);
+  game.selection.forEach(u => u.selected = true);
+
+  if (game.selection.length > 0) {
+    const center = game.selection.reduce((acc, u) => v2add(acc, u.pos), v2(0,0));
+    game.camera.x = center.x / game.selection.length - canvas.width / (2 * game.camera.zoom);
+    game.camera.y = center.y / game.selection.length - canvas.height / (2 * game.camera.zoom);
+  }
+
+  updateSelectionInfo();
+}
+
+function updateSelectionInfo() {
+  const el = document.getElementById('selInfoGrid');
+  if (game.selection.length === 0) {
+    el.innerHTML = '<div>NO UNITS SELECTED</div>';
+    return;
+  }
+
+  const types = {};
+  let totalHp = 0, totalMaxHp = 0, totalDps = 0;
+  const alive = game.selection.filter(u => u.alive);
+  for (const u of alive) {
+    types[u.label] = (types[u.label] || 0) + 1;
+    totalHp += u.hp;
+    totalMaxHp += u.maxHp;
+    if (u.rof > 0) totalDps += (u.damage * 60) / u.rof;
+  }
+
+  const hpPct = totalMaxHp > 0 ? Math.round(totalHp / totalMaxHp * 100) : 0;
+  let html = '';
+  html += Object.entries(types).map(([t, c]) => `<div>${t}: ${c}</div>`).join('');
+  html += `<div>HP: ${hpPct}%</div>`;
+  html += `<div>DPS: ${Math.round(totalDps)}</div>`;
+  html += `<div>ORDER: ${alive[0]?.order?.toUpperCase() || 'NONE'}</div>`;
+
+  // Individual unit HP bars (max 10)
+  const showUnits = alive.slice(0, 10);
+  if (showUnits.length > 0) {
+    html += '<div style="grid-column:1/-1;margin-top:4px;display:flex;flex-wrap:wrap;gap:2px;">';
+    for (const u of showUnits) {
+      const pct = Math.round(u.hp / u.maxHp * 100);
+      const c = pct > 50 ? '#00ff88' : pct > 25 ? '#ffaa00' : '#ff3333';
+      html += `<div style="width:28px;height:6px;background:rgba(0,0,0,0.5);position:relative;" title="${u.label} ${pct}%"><div style="width:${pct}%;height:100%;background:${c};"></div></div>`;
+    }
+    if (alive.length > 10) html += `<div style="font-size:8px;color:#557766;">+${alive.length - 10}</div>`;
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+// --- CAMERA ---
+function updateCamera(dt) {
+  const panSpeed = 8 / game.camera.zoom;
+  if (game.keys['w'] || game.keys['arrowup']) game.camera.y -= panSpeed;
+  if (game.keys['s'] || game.keys['arrowdown']) game.camera.y += panSpeed;
+  if (game.keys['a'] || game.keys['arrowleft']) game.camera.x -= panSpeed;
+  if (game.keys['d'] || game.keys['arrowright']) game.camera.x += panSpeed;
+
+  // Edge scroll
+  const edge = 30;
+  if (game.mouse.x < edge) game.camera.x -= panSpeed * 0.5;
+  if (game.mouse.x > canvas.width - edge) game.camera.x += panSpeed * 0.5;
+  if (game.mouse.y < edge + 48) game.camera.y -= panSpeed * 0.5;
+  if (game.mouse.y > canvas.height - edge - 140) game.camera.y += panSpeed * 0.5;
+
+  game.camera.x = clamp(game.camera.x, -100, WORLD_W - canvas.width / game.camera.zoom + 100);
+  game.camera.y = clamp(game.camera.y, -100, WORLD_H - canvas.height / game.camera.zoom + 100);
+}
+
+// --- MAIN UPDATE ---
+function update(dt) {
+  if (game.paused) return;
+
+  game.time += dt / 60;
+  game.supply += game.supplyRate * dt / 60;
+
+  // Update spatial grid
+  game.grid.clear();
+  for (const e of game.entities) {
+    if (e.alive) game.grid.insert(e);
+  }
+
+  // Reset jammed state each frame
+  for (const e of game.entities) {
+    if (e.alive) e.jammed = false;
+  }
+
+  // Update hacked state
+  for (const e of game.entities) {
+    if (e.hacked) {
+      e.hackTimer -= dt;
+      if (e.hackTimer <= 0) e.hacked = false;
+    }
+  }
+
+  // Update all entities (including dying ones for animation)
+  for (const e of game.entities) {
+    if (e.dying) {
+      e.deathTimer--;
+      if (e.deathTimer <= 0) e.dying = false; // fully gone
+      continue;
+    }
+    if (!e.alive) continue;
+    updateSwarmBehavior(e, dt);
+    updateCombat(e, dt);
+    if (e.jamRadius > 0) updateEW(e, dt);
+
+    // Update trail decay
+    for (let i = e.trail.length - 1; i >= 0; i--) {
+      e.trail[i].life--;
+      if (e.trail[i].life <= 0) e.trail.splice(i, 1);
+    }
+  }
+
+  // Red AI
+  updateRedAI(dt);
+
+  // Update projectiles
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const p = projectiles[i];
+    p.prevPos = { x: p.pos.x, y: p.pos.y };
+    p.pos = v2add(p.pos, p.vel);
+    p.life--;
+    if (p.life <= 0) projectiles.splice(i, 1);
+  }
+
+  // Update effects
+  for (let i = effects.length - 1; i >= 0; i--) {
+    effects[i].life--;
+    if (effects[i].life <= 0) effects.splice(i, 1);
+  }
+
+  // Update particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.pos = v2add(p.pos, p.vel);
+    p.vel = v2scale(p.vel, 0.95); // friction
+    p.vel.y += 0.05; // gravity
+    p.life--;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+
+  // Screen shake decay
+  if (game.screenShake > 0) game.screenShake *= 0.85;
+  if (game.screenShake < 0.5) game.screenShake = 0;
+
+  // Capture points
+  for (const cp of game.capturePoints) {
+    const nearby = game.grid.query(cp.pos.x, cp.pos.y, cp.radius);
+    let blue = 0, red = 0;
+    for (const n of nearby) {
+      if (!n.alive) continue;
+      if (n.team === TEAM_BLUE) blue++;
+      else red++;
+    }
+    if (blue > 0 && red === 0) {
+      cp.progress = Math.min(100, cp.progress + 0.3 * blue);
+      if (cp.progress >= 100 && cp.owner !== TEAM_BLUE) {
+        cp.owner = TEAM_BLUE;
+        game.supplyRate += 1;
+        addIntel(`POINT CAPTURED — SUPPLY RATE +1`, 'warning');
+      }
+    } else if (red > 0 && blue === 0) {
+      cp.progress = Math.max(-100, cp.progress - 0.3 * red);
+      if (cp.progress <= -100 && cp.owner !== TEAM_RED) {
+        cp.owner = TEAM_RED;
+        if (game.supplyRate > 1) game.supplyRate -= 1;
+        addIntel(`POINT LOST TO ENEMY`, 'critical');
+      }
+    }
+  }
+
+  // Supply drops
+  game.supplyDropTimer -= dt;
+  if (game.supplyDropTimer <= 0) {
+    game.supplyDropTimer = rand(1200, 2400); // 20-40 seconds
+    const dx = rand(WORLD_W * 0.2, WORLD_W * 0.8);
+    const dy = rand(WORLD_H * 0.2, WORLD_H * 0.8);
+    game.supplyDrops.push({ pos: v2(dx, dy), amount: randInt(60, 120), life: 1800 }); // 30sec lifetime
+    addIntel('SUPPLY DROP DETECTED ON MAP', 'warning');
+  }
+  // Check supply drop collection
+  for (let i = game.supplyDrops.length - 1; i >= 0; i--) {
+    const sd = game.supplyDrops[i];
+    sd.life -= dt;
+    if (sd.life <= 0) { game.supplyDrops.splice(i, 1); continue; }
+    const nearby = game.grid.query(sd.pos.x, sd.pos.y, 40);
+    for (const n of nearby) {
+      if (n.team === TEAM_BLUE && n.alive) {
+        game.supply += sd.amount;
+        spawnDmgText(sd.pos.x, sd.pos.y, `+${sd.amount}`, '#00ff88');
+        playSound('pickup');
+        game.supplyDrops.splice(i, 1);
+        break;
+      }
+    }
+  }
+
+  // Cyber cooldowns
+  game.cyberCooldowns.hack = Math.max(0, game.cyberCooldowns.hack - dt);
+  game.cyberCooldowns.emp = Math.max(0, game.cyberCooldowns.emp - dt);
+
+  // Update cooldown button states
+  document.getElementById('cyberHackBtn').classList.toggle('on-cooldown', game.cyberCooldowns.hack > 0);
+  document.getElementById('cyberEmpBtn').classList.toggle('on-cooldown', game.cyberCooldowns.emp > 0);
+
+  // Auto-deploy
+  for (const [type, enabled] of Object.entries(game.autoDeploy)) {
+    if (!enabled) continue;
+    const cost = getCost(type);
+    if (game.supply >= cost + 100) { // keep 100 buffer
+      deploySwarm(type);
+    }
+  }
+
+  // Clean up dead entities periodically (keep dying ones for animation)
+  if (Math.random() < 0.01) {
+    game.entities = game.entities.filter(e => e.alive || e.dying);
+  }
+
+  // Update HUD stats
+  const blueCount = game.entities.filter(e => e.team === TEAM_BLUE && e.alive).length;
+  const redCount = game.entities.filter(e => e.team === TEAM_RED && e.alive).length;
+  document.getElementById('droneCount').textContent = blueCount;
+  document.getElementById('enemyCount').textContent = redCount;
+  document.getElementById('killCount').textContent = game.kills;
+  document.getElementById('supplyCount').textContent = Math.floor(game.supply);
+  document.getElementById('waveNum').textContent = game.wave;
+  document.getElementById('supplyRate').textContent = game.supplyRate.toFixed(0);
+
+  // Wave countdown
+  const waveSeconds = Math.max(0, Math.ceil(game.waveTimer / 60));
+  document.getElementById('waveCountdown').textContent = waveSeconds + 's';
+  const waveEl = document.getElementById('waveCountdown');
+  waveEl.style.color = waveSeconds <= 5 ? '#ff4444' : waveSeconds <= 10 ? '#ffaa00' : '#00ffcc';
+  if (waveSeconds <= 5 && waveSeconds > 0) {
+    document.getElementById('alertTicker').textContent = `⚠ WAVE ${game.wave + 1} IN ${waveSeconds}s`;
+  }
+
+  const mins = Math.floor(game.time / 60);
+  const secs = Math.floor(game.time % 60);
+  document.getElementById('gameTime').textContent = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+
+  // Check game over
+  if (blueCount === 0 && game.wave > 1 && game.supply < 80) {
+    endGame(false);
+  }
+  if (game.mode === 'standard' && game.wave >= 10 && redCount === 0) {
+    endGame(true);
+  }
+  if (game.mode === 'hard' && game.wave >= 15 && redCount === 0) {
+    endGame(true);
+  }
+}
+
+// --- RENDERING ---
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.save();
+  ctx.scale(game.camera.zoom, game.camera.zoom);
+
+  // Screen shake
+  let shakeX = 0, shakeY = 0;
+  if (game.screenShake > 0) {
+    shakeX = (Math.random() - 0.5) * game.screenShake;
+    shakeY = (Math.random() - 0.5) * game.screenShake;
+  }
+  ctx.translate(-game.camera.x + shakeX, -game.camera.y + shakeY);
+
+  // Frustum culling bounds
+  const frustum = {
+    x: game.camera.x - 80,
+    y: game.camera.y - 80,
+    w: canvas.width / game.camera.zoom + 160,
+    h: canvas.height / game.camera.zoom + 160,
+  };
+  function inFrustum(px, py) {
+    return px >= frustum.x && px <= frustum.x + frustum.w && py >= frustum.y && py <= frustum.y + frustum.h;
+  }
+
+  // Terrain
+  if (terrainCanvas) {
+    ctx.drawImage(terrainCanvas, 0, 0);
+  }
+
+  // Water shimmer
+  const shimmerTime = game.time * 2;
+  ctx.globalAlpha = 0.04;
+  ctx.strokeStyle = '#4488bb';
+  ctx.lineWidth = 0.5;
+  for (let wy = Math.floor(frustum.y / 40) * 40; wy < frustum.y + frustum.h; wy += 40) {
+    for (let wx = Math.floor(frustum.x / 40) * 40; wx < frustum.x + frustum.w; wx += 40) {
+      if (wx >= 0 && wx < WORLD_W && wy >= 0 && wy < WORLD_H && getTerrainAt(wx, wy) <= 1) {
+        const offset = Math.sin(shimmerTime + wx * 0.01 + wy * 0.02) * 5;
+        ctx.beginPath();
+        ctx.moveTo(wx, wy + offset);
+        ctx.lineTo(wx + 30, wy + offset + 2);
+        ctx.stroke();
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // Fog of war (simplified - darken areas far from blue units)
+  renderFog();
+
+  // Entity trails
+  for (const e of game.entities) {
+    if (!e.alive) continue;
+    for (const t of e.trail) {
+      const alpha = t.life / 20 * 0.3;
+      ctx.fillStyle = e.team === TEAM_BLUE ? `rgba(0,200,255,${alpha})` : `rgba(255,100,50,${alpha})`;
+      ctx.fillRect(t.x - 1, t.y - 1, 2, 2);
+    }
+  }
+
+  // Jam zones
+  for (const e of game.entities) {
+    if (!e.alive || e.jamRadius <= 0) continue;
+    const jamPower = e.team === TEAM_BLUE ? game.spectrum.jam / 30 : 0.8;
+    ctx.beginPath();
+    ctx.arc(e.pos.x, e.pos.y, e.jamRadius * jamPower, 0, Math.PI * 2);
+    ctx.fillStyle = e.team === TEAM_BLUE ? 'rgba(0,100,255,0.05)' : 'rgba(255,50,0,0.05)';
+    ctx.fill();
+    ctx.strokeStyle = e.team === TEAM_BLUE ? 'rgba(0,100,255,0.15)' : 'rgba(255,50,0,0.15)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Heal zones
+  for (const e of game.entities) {
+    if (!e.alive || e.healRadius <= 0) continue;
+    ctx.beginPath();
+    ctx.arc(e.pos.x, e.pos.y, e.healRadius, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,255,100,0.04)';
+    ctx.fill();
+  }
+
+  // Capture points
+  for (const cp of game.capturePoints) {
+    if (!inFrustum(cp.pos.x, cp.pos.y)) continue;
+    const pulse = 0.6 + Math.sin(game.time * 3) * 0.2;
+    ctx.beginPath();
+    // Hexagon
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
+      const px = cp.pos.x + Math.cos(a) * cp.radius * pulse;
+      const py = cp.pos.y + Math.sin(a) * cp.radius * pulse;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    const cpColor = cp.owner === TEAM_BLUE ? 'rgba(0,200,255,0.12)' :
+                    cp.owner === TEAM_RED ? 'rgba(255,60,40,0.12)' : 'rgba(255,255,255,0.06)';
+    ctx.fillStyle = cpColor;
+    ctx.fill();
+    ctx.strokeStyle = cp.owner === TEAM_BLUE ? '#00aaff' : cp.owner === TEAM_RED ? '#ff4433' : '#555555';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // Progress bar
+    const barW = 40, barH = 4;
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(cp.pos.x - barW/2, cp.pos.y + cp.radius + 8, barW, barH);
+    const pct = Math.abs(cp.progress) / 100;
+    ctx.fillStyle = cp.progress > 0 ? '#00aaff' : cp.progress < 0 ? '#ff4433' : '#333';
+    ctx.fillRect(cp.pos.x - barW/2, cp.pos.y + cp.radius + 8, barW * pct, barH);
+    // Label
+    ctx.fillStyle = '#888';
+    ctx.font = '8px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('CAPTURE', cp.pos.x, cp.pos.y + cp.radius + 20);
+    ctx.textAlign = 'left';
+  }
+
+  // Supply drops
+  for (const sd of game.supplyDrops) {
+    if (!inFrustum(sd.pos.x, sd.pos.y)) continue;
+    const pulse = 0.7 + Math.sin(game.time * 5) * 0.3;
+    ctx.fillStyle = `rgba(255,220,0,${0.4 * pulse})`;
+    ctx.fillRect(sd.pos.x - 6, sd.pos.y - 6, 12, 12);
+    ctx.strokeStyle = '#ffcc00';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(sd.pos.x - 8, sd.pos.y - 8, 16, 16);
+    ctx.fillStyle = '#ffcc00';
+    ctx.font = '7px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText(`+${sd.amount}`, sd.pos.x, sd.pos.y + 16);
+    ctx.textAlign = 'left';
+  }
+
+  // Rally point
+  if (game.rallyPoint) {
+    const rp = game.rallyPoint;
+    if (inFrustum(rp.x, rp.y)) {
+      const rpPulse = 0.6 + Math.sin(game.time * 4) * 0.3;
+      ctx.save();
+      ctx.translate(rp.x, rp.y);
+      ctx.rotate(Math.PI / 4);
+      ctx.strokeStyle = `rgba(0,255,200,${rpPulse})`;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-8, -8, 16, 16);
+      ctx.restore();
+      ctx.fillStyle = 'rgba(0,255,200,0.6)';
+      ctx.font = '8px Courier New';
+      ctx.textAlign = 'center';
+      ctx.fillText('RALLY', rp.x, rp.y + 16);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  // Entities (with frustum culling)
+  for (const e of game.entities) {
+    if (!e.alive && !e.dying) continue;
+    if (!inFrustum(e.pos.x, e.pos.y)) continue;
+    renderEntity(e);
+  }
+
+  // Selection highlights
+  for (const e of game.selection) {
+    if (!e.alive) continue;
+    ctx.beginPath();
+    ctx.arc(e.pos.x, e.pos.y, e.size + 6, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0,255,200,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // Sensor ranges for selected
+  for (const e of game.selection) {
+    if (!e.alive) continue;
+    ctx.beginPath();
+    ctx.arc(e.pos.x, e.pos.y, e.sensor * (game.spectrum.radar / 50), 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0,255,200,0.08)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+    if (e.range > 0) {
+      ctx.beginPath();
+      ctx.arc(e.pos.x, e.pos.y, e.range, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255,100,0,0.1)';
+      ctx.stroke();
+    }
+  }
+
+  // Projectiles (tracer trails)
+  ctx.lineCap = 'round';
+  for (const p of projectiles) {
+    if (!inFrustum(p.pos.x, p.pos.y)) continue;
+    const color = p.team === TEAM_BLUE ? '#00ddff' : '#ff6633';
+    ctx.beginPath();
+    ctx.moveTo(p.prevPos.x, p.prevPos.y);
+    ctx.lineTo(p.pos.x, p.pos.y);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 6;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+  ctx.lineCap = 'butt';
+
+  // Effects
+  for (const fx of effects) {
+    if (!inFrustum(fx.pos.x, fx.pos.y)) continue;
+    const progress = 1 - fx.life / fx.maxLife;
+    const alpha = 1 - progress;
+
+    if (fx.type === 'explosion') {
+      const radius = fx.maxSize * (0.3 + progress * 0.7);
+      ctx.beginPath();
+      ctx.arc(fx.pos.x, fx.pos.y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,200,100,${alpha * 0.3})`;
+      ctx.fill();
+      ctx.strokeStyle = fx.color;
+      ctx.globalAlpha = alpha;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = fx.color;
+      ctx.shadowBlur = 10 * alpha;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+    } else if (fx.type === 'shockwave') {
+      const radius = fx.maxSize * progress;
+      ctx.beginPath();
+      ctx.arc(fx.pos.x, fx.pos.y, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.25})`;
+      ctx.lineWidth = 2 * alpha;
+      ctx.stroke();
+    } else if (fx.type === 'flash') {
+      ctx.beginPath();
+      ctx.arc(fx.pos.x, fx.pos.y, 6 * alpha, 0, Math.PI * 2);
+      ctx.fillStyle = fx.color;
+      ctx.shadowColor = fx.color;
+      ctx.shadowBlur = 12;
+      ctx.globalAlpha = alpha;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+    } else if (fx.type === 'dmgText') {
+      fx.pos.y -= 0.5; // float up
+      ctx.font = '9px Courier New';
+      ctx.fillStyle = fx.color;
+      ctx.globalAlpha = alpha;
+      ctx.textAlign = 'center';
+      ctx.fillText(fx.text, fx.pos.x, fx.pos.y);
+      ctx.textAlign = 'left';
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // Particles
+  for (const p of particles) {
+    if (!inFrustum(p.pos.x, p.pos.y)) continue;
+    const alpha = p.life / p.maxLife;
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = alpha;
+    ctx.fillRect(p.pos.x - p.size/2, p.pos.y - p.size/2, p.size, p.size);
+  }
+  ctx.globalAlpha = 1;
+
+  // Order waypoints for selected
+  for (const e of game.selection) {
+    if (!e.alive || !e.orderTarget) continue;
+    ctx.beginPath();
+    ctx.setLineDash([4, 6]);
+    ctx.moveTo(e.pos.x, e.pos.y);
+    ctx.lineTo(e.orderTarget.x, e.orderTarget.y);
+    ctx.strokeStyle = 'rgba(0,255,200,0.2)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Waypoint marker
+    ctx.strokeStyle = 'rgba(0,255,200,0.4)';
+    ctx.strokeRect(e.orderTarget.x - 5, e.orderTarget.y - 5, 10, 10);
+  }
+
+  ctx.restore();
+
+  // Threat direction arrows (screen-space)
+  const camCX = game.camera.x + canvas.width / (2 * game.camera.zoom);
+  const camCY = game.camera.y + canvas.height / (2 * game.camera.zoom);
+  const threatGroups = [];
+  for (const e of game.entities) {
+    if (e.team !== TEAM_RED || !e.alive) continue;
+    const sp = worldToScreen(e.pos.x, e.pos.y);
+    if (sp.x < -20 || sp.x > canvas.width + 20 || sp.y < -20 || sp.y > canvas.height + 20) {
+      const d = v2dist(e.pos, v2(camCX, camCY));
+      if (d < 2000) {
+        const ang = angle(v2(camCX, camCY), e.pos);
+        threatGroups.push(ang);
+      }
+    }
+  }
+  // Draw threat arrows at screen edges
+  const drawnAngles = [];
+  for (const ang of threatGroups) {
+    // Skip if too close to already drawn arrow
+    if (drawnAngles.some(a => Math.abs(a - ang) < 0.3)) continue;
+    drawnAngles.push(ang);
+    const margin = 30;
+    let ax = canvas.width / 2 + Math.cos(ang) * (canvas.width / 2 - margin);
+    let ay = canvas.height / 2 + Math.sin(ang) * (canvas.height / 2 - margin);
+    ax = clamp(ax, margin, canvas.width - margin);
+    ay = clamp(ay, margin + 48, canvas.height - margin - 140);
+    ctx.save();
+    ctx.translate(ax, ay);
+    ctx.rotate(ang);
+    ctx.beginPath();
+    ctx.moveTo(10, 0);
+    ctx.lineTo(-4, -5);
+    ctx.lineTo(-4, 5);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,60,40,0.6)';
+    ctx.fill();
+    ctx.restore();
+    if (drawnAngles.length > 8) break; // max 8 arrows
+  }
+
+  // Wave incoming border pulse
+  const waveSeconds = Math.ceil(game.waveTimer / 60);
+  if (waveSeconds <= 5 && waveSeconds > 0 && !game.paused) {
+    const pulseAlpha = (Math.sin(game.time * 8) * 0.5 + 0.5) * 0.15;
+    ctx.strokeStyle = `rgba(255,40,20,${pulseAlpha})`;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+  }
+
+  // Render minimap
+  renderMinimap();
+
+  // Pause overlay
+  if (game.paused) {
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#00ffcc';
+    ctx.font = '36px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
+    ctx.font = '14px Courier New';
+    ctx.fillText('PRESS SPACE TO RESUME', canvas.width / 2, canvas.height / 2 + 30);
+    ctx.textAlign = 'left';
+  }
+}
+
+function renderEntity(e) {
+  const x = e.pos.x, y = e.pos.y;
+  let s = e.size;
+  const isBlue = e.team === TEAM_BLUE;
+
+  // Dying animation
+  if (e.dying) {
+    const deathProgress = 1 - e.deathTimer / e.deathMaxTimer;
+    ctx.globalAlpha = 1 - deathProgress;
+    s *= (1 - deathProgress * 0.5);
+    e.heading += 0.3; // spin
+  }
+
+  // Boss pulsing glow
+  if (e.boss && e.alive) {
+    const pulse = 0.5 + Math.sin(game.time * 4) * 0.3;
+    ctx.beginPath();
+    ctx.arc(x, y, s + 12, 0, Math.PI * 2);
+    ctx.fillStyle = isBlue ? `rgba(0,200,255,${pulse * 0.15})` : `rgba(255,40,20,${pulse * 0.15})`;
+    ctx.fill();
+    ctx.strokeStyle = isBlue ? `rgba(0,200,255,${pulse * 0.4})` : `rgba(255,40,20,${pulse * 0.4})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // Hacked effect
+  if (e.hacked) {
+    ctx.fillStyle = 'rgba(255,0,255,0.3)';
+    ctx.beginPath();
+    ctx.arc(x, y, s + 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Jammed effect
+  if (e.jammed && !e.hacked) {
+    ctx.strokeStyle = 'rgba(255,255,0,0.3)';
+    ctx.setLineDash([2, 2]);
+    ctx.beginPath();
+    ctx.arc(x, y, s + 3, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(e.heading);
+
+  // Domain-specific shapes
+  if (e.domain === DOMAIN_AIR) {
+    // Triangle (aircraft)
+    ctx.beginPath();
+    ctx.moveTo(s, 0);
+    ctx.lineTo(-s * 0.7, -s * 0.6);
+    ctx.lineTo(-s * 0.3, 0);
+    ctx.lineTo(-s * 0.7, s * 0.6);
+    ctx.closePath();
+
+    if (e.type === 'f47') {
+      // F-47B Talon — sleek stealth cranked kite shape
+      ctx.beginPath();
+      ctx.moveTo(s * 1.2, 0);
+      ctx.lineTo(-s * 0.2, -s * 0.8);
+      ctx.lineTo(-s * 0.8, -s * 0.3);
+      ctx.lineTo(-s * 0.4, 0);
+      ctx.lineTo(-s * 0.8, s * 0.3);
+      ctx.lineTo(-s * 0.2, s * 0.8);
+      ctx.closePath();
+      ctx.fillStyle = isBlue ? '#9966ff' : '#ff4444';
+      ctx.fill();
+      ctx.strokeStyle = isBlue ? '#bb88ff' : '#ff6666';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.shadowColor = isBlue ? '#9966ff' : '#ff4444';
+      ctx.shadowBlur = 12;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    } else if (e.type === 'fury') {
+      // Anduril Fury — small aggressive dart shape
+      ctx.beginPath();
+      ctx.moveTo(s * 0.9, 0);
+      ctx.lineTo(-s * 0.3, -s * 0.5);
+      ctx.lineTo(-s * 0.6, -s * 0.2);
+      ctx.lineTo(-s * 0.4, 0);
+      ctx.lineTo(-s * 0.6, s * 0.2);
+      ctx.lineTo(-s * 0.3, s * 0.5);
+      ctx.closePath();
+      ctx.fillStyle = isBlue ? '#ff8800' : '#ff4444';
+      ctx.fill();
+      ctx.strokeStyle = isBlue ? '#ffaa33' : '#ff6666';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+      // Orange glow for Fury
+      ctx.shadowColor = '#ff8800';
+      ctx.shadowBlur = 6;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    } else if (e.type === 'ngad') {
+      // NGAD — stealth fighter shape
+      ctx.fillStyle = isBlue ? '#00ccff' : '#ff4444';
+      ctx.fill();
+      ctx.strokeStyle = isBlue ? '#00ffff' : '#ff6666';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.shadowColor = isBlue ? '#00ccff' : '#ff4444';
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    } else {
+      ctx.fillStyle = isBlue ? 'rgba(0,180,220,0.8)' : 'rgba(220,80,60,0.8)';
+      ctx.fill();
+      ctx.strokeStyle = isBlue ? '#00ddff' : '#ff5533';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    }
+  } else if (e.domain === DOMAIN_LAND) {
+    // Rectangle (ground)
+    ctx.fillStyle = isBlue ? 'rgba(0,200,150,0.8)' : 'rgba(200,100,50,0.8)';
+    ctx.fillRect(-s * 0.6, -s * 0.4, s * 1.2, s * 0.8);
+    ctx.strokeStyle = isBlue ? '#00cc99' : '#cc6633';
+    ctx.lineWidth = 0.8;
+    ctx.strokeRect(-s * 0.6, -s * 0.4, s * 1.2, s * 0.8);
+  } else if (e.domain === DOMAIN_SEA) {
+    // Diamond (naval)
+    ctx.beginPath();
+    ctx.moveTo(s, 0);
+    ctx.lineTo(0, -s * 0.5);
+    ctx.lineTo(-s, 0);
+    ctx.lineTo(0, s * 0.5);
+    ctx.closePath();
+    ctx.fillStyle = isBlue ? 'rgba(0,150,255,0.8)' : 'rgba(200,60,80,0.8)';
+    ctx.fill();
+    ctx.strokeStyle = isBlue ? '#0088ff' : '#cc4455';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+  // Health bar (only if damaged)
+  if (e.hp < e.maxHp) {
+    const barW = s * 2;
+    const barH = 2;
+    const hpPct = e.hp / e.maxHp;
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(x - barW/2, y - s - 5, barW, barH);
+    ctx.fillStyle = hpPct > 0.5 ? '#00ff88' : hpPct > 0.25 ? '#ffaa00' : '#ff3333';
+    ctx.fillRect(x - barW/2, y - s - 5, barW * hpPct, barH);
+  }
+
+  // ISR drone sensor pulse
+  if (e.type === 'isr' && e.alive) {
+    const pulse = (game.time * 3) % 1;
+    ctx.beginPath();
+    ctx.arc(x, y, e.sensor * pulse * (game.spectrum.radar / 50), 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(0,255,200,${0.15 * (1 - pulse)})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // EW drone jam pulse
+  if (e.type === 'ew' && e.alive) {
+    const pulse = (game.time * 2) % 1;
+    ctx.beginPath();
+    ctx.arc(x, y, e.jamRadius * pulse, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(100,100,255,${0.2 * (1 - pulse)})`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // Afterburner glow for fast air/sea units
+  if (e.alive && (e.domain === DOMAIN_AIR || e.type === 'skimmer') && v2len(e.vel) > 2.5) {
+    const tailX = x - Math.cos(e.heading) * s * 1.2;
+    const tailY = y - Math.sin(e.heading) * s * 1.2;
+    const intensity = (v2len(e.vel) - 2.5) / 3;
+    const gradient = ctx.createRadialGradient(tailX, tailY, 0, tailX, tailY, s * 0.8);
+    gradient.addColorStop(0, `rgba(255,200,50,${0.4 * intensity})`);
+    gradient.addColorStop(1, 'rgba(255,100,0,0)');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(tailX, tailY, s * 0.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Reset alpha after dying animation
+  ctx.globalAlpha = 1;
+}
+
+function renderFog() {
+  // Simple distance-based fog from blue units
+  // For performance, we draw a dark overlay and cut out circles around blue units
+  ctx.save();
+
+  // Create fog
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+
+  // Cut out visible areas
+  ctx.globalCompositeOperation = 'destination-out';
+  for (const e of game.entities) {
+    if (e.team !== TEAM_BLUE || !e.alive) continue;
+    const sensorRange = e.sensor * (game.spectrum.radar / 50);
+    const gradient = ctx.createRadialGradient(e.pos.x, e.pos.y, 0, e.pos.x, e.pos.y, sensorRange);
+    gradient.addColorStop(0, 'rgba(0,0,0,0.6)');
+    gradient.addColorStop(0.7, 'rgba(0,0,0,0.3)');
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(e.pos.x, e.pos.y, sensorRange, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.restore();
+}
+
+function renderMinimap() {
+  const mmW = 220, mmH = 155;
+  mmCtx.fillStyle = '#0a1020';
+  mmCtx.fillRect(0, 0, mmW, mmH);
+
+  const sx = mmW / WORLD_W;
+  const sy = mmH / WORLD_H;
+
+  // Terrain
+  for (let ty = 0; ty < game.terrain.h; ty += 3) {
+    for (let tx = 0; tx < game.terrain.w; tx += 3) {
+      const type = game.terrain.data[ty * game.terrain.w + tx];
+      mmCtx.fillStyle = TERRAIN_COLORS[type];
+      mmCtx.fillRect(tx * game.terrain.tileSize * sx, ty * game.terrain.tileSize * sy, 4, 3);
+    }
+  }
+
+  // Capture points
+  for (const cp of game.capturePoints) {
+    mmCtx.fillStyle = cp.owner === TEAM_BLUE ? '#00aaff' : cp.owner === TEAM_RED ? '#ff4433' : '#555555';
+    mmCtx.beginPath();
+    mmCtx.arc(cp.pos.x * sx, cp.pos.y * sy, 3, 0, Math.PI * 2);
+    mmCtx.fill();
+  }
+
+  // Supply drops
+  mmCtx.fillStyle = '#ffcc00';
+  for (const sd of game.supplyDrops) {
+    mmCtx.fillRect(sd.pos.x * sx - 1, sd.pos.y * sy - 1, 3, 3);
+  }
+
+  // Rally point
+  if (game.rallyPoint) {
+    mmCtx.strokeStyle = '#00ffcc';
+    mmCtx.lineWidth = 1;
+    mmCtx.strokeRect(game.rallyPoint.x * sx - 2, game.rallyPoint.y * sy - 2, 4, 4);
+  }
+
+  // Base marker
+  mmCtx.fillStyle = '#ffffff';
+  mmCtx.fillRect(WORLD_W * 0.12 * sx - 2, WORLD_H * 0.5 * sy - 2, 4, 4);
+
+  // Entities
+  for (const e of game.entities) {
+    if (!e.alive) continue;
+    mmCtx.fillStyle = e.team === TEAM_BLUE ? '#00ddff' : '#ff4433';
+    const sz = e.boss ? 4 : (e.team === TEAM_BLUE ? 3 : 2);
+    mmCtx.fillRect(e.pos.x * sx, e.pos.y * sy, sz, 2);
+  }
+
+  // Camera viewport
+  mmCtx.strokeStyle = 'rgba(0,255,200,0.5)';
+  mmCtx.lineWidth = 1;
+  mmCtx.strokeRect(
+    game.camera.x * sx,
+    game.camera.y * sy,
+    (canvas.width / game.camera.zoom) * sx,
+    (canvas.height / game.camera.zoom) * sy
+  );
+}
+
+// --- GAME START ---
+function startGame(mode) {
+  game.mode = mode;
+  game.state = 'playing';
+  game.difficulty = mode === 'hard' ? 1.8 : mode === 'endless' ? 1.3 : 1;
+
+  document.getElementById('menuScreen').style.display = 'none';
+  document.getElementById('topBar').style.display = 'flex';
+  document.getElementById('deployPanel').style.display = 'block';
+  document.getElementById('rightPanel').style.display = 'block';
+  document.getElementById('bottomPanel').style.display = 'flex';
+  document.getElementById('minimap').style.display = 'block';
+
+  // Initialize audio
+  initAudio();
+
+  // Generate terrain
+  game.terrain = generateTerrain();
+  renderTerrainCache();
+
+  // Create spatial grid
+  game.grid = new SpatialGrid(GRID_CELL, WORLD_W, WORLD_H);
+
+  // Create capture points
+  game.capturePoints = [
+    { pos: v2(WORLD_W * 0.4, WORLD_H * 0.3), radius: 80, owner: null, progress: 0 },
+    { pos: v2(WORLD_W * 0.5, WORLD_H * 0.55), radius: 80, owner: null, progress: 0 },
+    { pos: v2(WORLD_W * 0.35, WORLD_H * 0.75), radius: 80, owner: null, progress: 0 },
+    { pos: v2(WORLD_W * 0.6, WORLD_H * 0.4), radius: 80, owner: null, progress: 0 },
+  ];
+  game.supplyDropTimer = 900; // first drop at 15 seconds
+
+  // Spawn initial blue forces
+  const baseX = WORLD_W * 0.12;
+  const baseY = WORLD_H * 0.5;
+  game.camera.x = baseX - canvas.width / 2;
+  game.camera.y = baseY - canvas.height / 2;
+
+  // Initial deployment
+  deploySwarm('ngad');
+  deploySwarm('cca');
+  deploySwarm('cca');
+  deploySwarm('isr');
+  deploySwarm('ugv');
+  deploySwarm('usv');
+  game.supply = 800;
+
+  // First wave timer
+  game.waveTimer = 600; // 10 seconds
+
+  addIntel('SWARM COMMAND ONLINE — SYSTEMS GREEN', null);
+  addIntel('AWAITING ORDERS, COMMANDER', null);
+
+  // Show instructions on first play
+  showInstructions();
+  game.paused = true;
+
+  // Start game loop
+  gameLoop();
+}
+
+function endGame(victory) {
+  game.state = 'gameover';
+  const screen = document.getElementById('gameOverScreen');
+  const title = document.getElementById('gameOverTitle');
+  const stats = document.getElementById('gameOverStats');
+
+  title.textContent = victory ? 'MISSION ACCOMPLISHED' : 'MISSION FAILED';
+  title.style.color = victory ? '#00ffcc' : '#ff4444';
+
+  const capturedPoints = game.capturePoints.filter(cp => cp.owner === TEAM_BLUE).length;
+  stats.innerHTML = `
+    WAVES SURVIVED: ${game.wave}<br>
+    TOTAL KILLS: ${game.kills}<br>
+    POINTS HELD: ${capturedPoints}/${game.capturePoints.length}<br>
+    TIME: ${Math.floor(game.time / 60)}m ${Math.floor(game.time % 60)}s<br>
+    MODE: ${game.mode.toUpperCase()}<br>
+    DIFFICULTY: ${game.difficulty.toFixed(1)}x
+  `;
+
+  screen.style.display = 'flex';
+}
+
+// --- GAME LOOP ---
+let lastTime = 0;
+let accumulator = 0;
+const FIXED_DT = 1; // ~60fps equivalent in game ticks
+
+function gameLoop(timestamp = 0) {
+  if (game.state === 'gameover') return;
+
+  const dt = Math.min((timestamp - lastTime) / 16.67, 3); // Cap delta
+  lastTime = timestamp;
+
+  updateCamera(dt);
+
+  if (game.state === 'playing' && !game.paused) {
+    for (let s = 0; s < game.speedMult; s++) {
+      update(FIXED_DT);
+    }
+  }
+
+  render();
+
+  requestAnimationFrame(gameLoop);
+}
+
+// --- INSTRUCTIONS PANEL ---
+function showInstructions() {
+  document.getElementById('instructionsPanel').style.display = 'block';
+  document.getElementById('instrBackdrop').style.display = 'block';
+  game.paused = true;
+}
+
+function closeInstructions() {
+  document.getElementById('instructionsPanel').style.display = 'none';
+  document.getElementById('instrBackdrop').style.display = 'none';
+  game.paused = false;
+  document.getElementById('alertTicker').textContent = 'SYSTEMS NOMINAL';
+}
+
+// --- GAME SPEED ---
+function setGameSpeed(n) {
+  game.speedMult = n;
+  playSound('ui');
+  document.getElementById('speed1').classList.toggle('active', n === 1);
+  document.getElementById('speed2').classList.toggle('active', n === 2);
+  document.getElementById('speed3').classList.toggle('active', n === 3);
+  // Reduce audio spam at high speed
+  if (n >= 2) {
+    audioThrottle.laser = game.audioCtx ? game.audioCtx.currentTime : 0;
+  }
+}
+
+// --- RALLY POINT ---
+function startSetRally() {
+  game.settingRally = true;
+  document.getElementById('rallyBtn').classList.add('active');
+  document.getElementById('alertTicker').textContent = 'CLICK MAP TO SET RALLY POINT';
+}
+
+function clearRally() {
+  game.rallyPoint = null;
+  game.settingRally = false;
+  document.getElementById('rallyBtn').classList.remove('active');
+  playSound('ui');
+  addIntel('RALLY POINT CLEARED', null);
+}
+
+// --- SELECT ALL ---
+function selectAll() {
+  game.selection.forEach(u => u.selected = false);
+  game.selection = game.entities.filter(e => e.team === TEAM_BLUE && e.alive);
+  game.selection.forEach(u => u.selected = true);
+  updateSelectionInfo();
+  playSound('ui');
+}
+
+// --- AUTO DEPLOY ---
+function toggleAutoDeploy(type) {
+  game.autoDeploy[type] = !game.autoDeploy[type];
+  const btn = document.getElementById(`auto_${type}`);
+  if (btn) {
+    const label = DRONE_STATS[type]?.label || type.toUpperCase();
+    btn.textContent = `${label} Auto: ${game.autoDeploy[type] ? 'ON' : 'OFF'}`;
+    btn.style.borderColor = game.autoDeploy[type] ? 'rgba(0,255,200,0.6)' : 'rgba(0,255,200,0.15)';
+    btn.style.color = game.autoDeploy[type] ? '#00ffcc' : '#88ccbb';
+  }
+  playSound('ui');
+}
+
+// Make functions accessible globally
+window.startGame = startGame;
+window.deploySwarm = deploySwarm;
+window.launchCyberOp = launchCyberOp;
+window.issueOrder = issueOrder;
+window.updateSpectrum = updateSpectrum;
+window.showInstructions = showInstructions;
+window.closeInstructions = closeInstructions;
+window.setGameSpeed = setGameSpeed;
+window.startSetRally = startSetRally;
+window.clearRally = clearRally;
+window.selectAll = selectAll;
+window.purchaseUpgrade = purchaseUpgrade;
+window.toggleAutoDeploy = toggleAutoDeploy;
+
+</script>
+</body>
+</html>
